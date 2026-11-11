@@ -105,6 +105,27 @@ MINI_APP_ID=<应用ID> MINI_APP_VERSION=0.1.0 npm run build:mini
 
 已知限制：舞台尺寸在启动时按窗口比例选定，**旋转屏幕后需要重新进入应用**才能切换横竖屏布局。
 
+### 平台沙箱实测记录（0.1.0）
+
+- 应用 ID：`01a1cb3b-8c2b-7c41-91c7-d16b5d5819a9`（社区应用页分配）
+- 已验证沙箱构建：`0.1.0-176c1843`，可在
+  `/apps-sandbox/01a1cb3b-8c2b-7c41-91c7-d16b5d5819a9/0.1.0-176c1843` 打开。
+- 平台容器做了严格隔离，构建期需要针对 Phaser 做四处适配（均已在代码中处理）：
+  1. **CSP `img-src blob:`**：Phaser 内置的 data: URI 纹理会被拦截，改用 blob URL
+     （`src/platform/phaserTextures.ts`）。
+  2. **Navigator / Window 属性只读**：Phaser 会为旧版 `navigator.getUserMedia`、
+     `window.URL`、`navigator.vibrate` 打 polyfill，直接赋值会抛
+     `Cannot assign to read only property`，构建时把这些赋值改成纯读取表达式
+     （`vite.config.ts` 的 `guardFrozenGlobals`）。
+  3. **默认拒绝 AudioContext**：Phaser 启动会创建音频上下文并抛
+     `Web Audio permission denied`；本作无声音，直接 `audio.noAudio: true`。
+  4. **frame 在 ready 前是 hidden/inert**：`requestAnimationFrame` 不回调，
+     所以 `lifecycle.ready()` 必须在 `new Phaser.Game()` 之后立刻用 `setTimeout` 送出
+     （`src/platform/shell.ts`），平台收到 `app-rendered` 才会显示游戏。
+
+正式提审时，应用简介、更新说明与审核备注需要由作者本人填写；仓库里的
+README 与代码仅供审核参考。
+
 ## 目录结构
 
 ```

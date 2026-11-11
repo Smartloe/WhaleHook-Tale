@@ -60,6 +60,16 @@ export function markFirstRender(): void {
   notifyReady();
 }
 
+/**
+ * 外壳 DOM 就绪即可通知平台。
+ * 平台在收到 app-rendered 之前会把应用 frame 置为 hidden/inert，
+ * 而 Phaser 的场景创建与渲染都靠 requestAnimationFrame —— 隐藏时 rAF 不回调。
+ * 因此必须先从外壳层把 ready 送出去，平台才会揭开 frame、Phaser 才真正开始跑。
+ */
+export function notifyShellReady(): void {
+  notifyReady();
+}
+
 /** 初始化失败时调用：把错误展示给用户，同时仍通知平台已完成初始化 */
 export function showFatalError(error: unknown): void {
   const detail = error instanceof Error ? error.message : String(error);
@@ -82,15 +92,13 @@ function notifyReady(): void {
   }
   readySent = true;
   const current = sdk;
-  // 等浏览器真正绘制出第一帧后再通知，避免平台提前揭开遮罩
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if (disposed) {
-        return;
-      }
-      void current.lifecycle.ready().catch((error: unknown) => {
-        console.warn('[whalehook] lifecycle.ready 失败', error);
-      });
+  // 同上：不能用 requestAnimationFrame，用 setTimeout 保证一定能送达。
+  window.setTimeout(() => {
+    if (disposed) {
+      return;
+    }
+    void current.lifecycle.ready().catch((error: unknown) => {
+      console.warn('[whalehook] lifecycle.ready 失败', error);
     });
-  });
+  }, 0);
 }

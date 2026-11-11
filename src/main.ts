@@ -5,7 +5,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { ResultScene } from './scenes/ResultScene';
 import { resolveStage } from './systems/StageLayout';
-import { disposeShell, initShell, showFatalError } from './platform/shell';
+import { disposeShell, initShell, notifyShellReady, showFatalError } from './platform/shell';
 import { createPhaserImageUrls, revokePhaserImageUrls } from './platform/phaserTextures';
 
 // 根据窗口宽高比选择横屏 / 竖屏舞台（微应用容器内取的是 iframe 尺寸）
@@ -33,6 +33,11 @@ const config: Phaser.Types.Core.GameConfig = {
     antialias: true,
     pixelArt: false,
   },
+  // 本作没有声音；微应用沙箱默认拒绝 AudioContext，
+  // 禁用 Phaser 音频系统可避免启动时被权限隔离打断。
+  audio: {
+    noAudio: true,
+  },
   scene: [BootScene, MenuScene, GameScene, ResultScene],
 };
 
@@ -41,6 +46,8 @@ function boot(): void {
 
   try {
     const game = new Phaser.Game(config);
+    // 外壳已就绪：先通知平台揭开 frame，Phaser 的 rAF 才会开始调度场景
+    notifyShellReady();
     window.addEventListener(
       'pagehide',
       () => {
@@ -55,9 +62,10 @@ function boot(): void {
   }
 }
 
-// 微应用容器可能把 app.js 注入到片段之前，等 DOM 就绪再取节点
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot, { once: true });
-} else {
+// 微应用容器把 app.js 内联在片段之后，此时 DOM 已可用；
+// 平台沙箱用 document.write 挂载，DOMContentLoaded 未必会触发，因此不要依赖它。
+if (document.getElementById('game') || document.readyState !== 'loading') {
   boot();
+} else {
+  document.addEventListener('DOMContentLoaded', boot, { once: true });
 }

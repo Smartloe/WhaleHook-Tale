@@ -23,6 +23,43 @@ function stripPhaserEvalShim(): Plugin {
 }
 
 /**
+ * 微应用运行时会把 navigator / window 上的若干属性设为只读（DOM 隔离）。
+ * Phaser 启动时会给旧的媒体/振动 API 打 polyfill，直接赋值这些属性会抛
+ * `Cannot assign to read only property 'getUserMedia'`，整个 bundle 因此中断。
+ *
+ * 这里把三处赋值改成纯读取表达式：现代浏览器上本来就是 no-op，
+ * 只影响 Phaser 的旧前缀能力探测，不影响游戏玩法。
+ */
+function guardFrozenGlobals(): Plugin {
+  const replacements: Array<[RegExp, string]> = [
+    [
+      /navigator\.getUserMedia\s*=\s*navigator\.getUserMedia\s*\|\|\s*navigator\.webkitGetUserMedia\s*\|\|\s*navigator\.mozGetUserMedia\s*\|\|\s*navigator\.msGetUserMedia\s*\|\|\s*navigator\.oGetUserMedia/g,
+      '(navigator.getUserMedia||navigator.webkitGetUserMedia||navigator.mozGetUserMedia||navigator.msGetUserMedia||navigator.oGetUserMedia||void 0)',
+    ],
+    [
+      /window\.URL\s*=\s*window\.URL\s*\|\|\s*window\.webkitURL\s*\|\|\s*window\.mozURL\s*\|\|\s*window\.msURL/g,
+      '(window.URL||window.webkitURL||window.mozURL||window.msURL||void 0)',
+    ],
+    [
+      /navigator\.vibrate\s*=\s*navigator\.vibrate\s*\|\|\s*navigator\.webkitVibrate\s*\|\|\s*navigator\.mozVibrate\s*\|\|\s*navigator\.msVibrate/g,
+      '(navigator.vibrate||navigator.webkitVibrate||navigator.mozVibrate||navigator.msVibrate||void 0)',
+    ],
+  ];
+  return {
+    name: 'whalehook-guard-frozen-globals',
+    apply: 'build',
+    enforce: 'post',
+    renderChunk(code) {
+      let next = code;
+      for (const [pattern, value] of replacements) {
+        next = next.replace(pattern, value);
+      }
+      return next === code ? null : { code: next, map: null };
+    },
+  };
+}
+
+/**
  * 两套构建：
  * - 默认（web）：GitHub Pages / 普通网页，产物在 dist/
  * - mini：linux.do 微应用运行包，单个 IIFE app.js + app.css，产物在 dist-mini/web/
@@ -33,7 +70,7 @@ export default defineConfig(({ mode }) => {
   if (mode === 'mini') {
     return {
       publicDir: false,
-      plugins: [stripPhaserEvalShim()],
+      plugins: [stripPhaserEvalShim(), guardFrozenGlobals()],
       build: {
         outDir: 'dist-mini/web',
         emptyOutDir: true,
