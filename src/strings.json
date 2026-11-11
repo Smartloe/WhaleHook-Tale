@@ -1,0 +1,20 @@
+{
+  "zh_CN": {
+    "loading": "正在准备鱼竿…",
+    "notice": "非官方同人作品 · 与 DeepSeek 官方无关 · 免费非商业",
+    "canvasLabel": "鲸钩物语游戏画面。按空格或点击画面发射鱼钩，60 秒内钓够 300 金币。",
+    "error": "游戏加载失败：{message}"
+  },
+  "zh_TW": {
+    "loading": "正在準備釣竿…",
+    "notice": "非官方同人作品 · 與 DeepSeek 官方無關 · 免費非商業",
+    "canvasLabel": "鯨鉤物語遊戲畫面。按空白鍵或點擊畫面發射魚鉤，60 秒內釣到 300 金幣。",
+    "error": "遊戲載入失敗：{message}"
+  },
+  "en": {
+    "loading": "Preparing the rod…",
+    "notice": "Unofficial fan work · Not affiliated with DeepSeek · Free, non-commercial",
+    "canvasLabel": "WhaleHook Tale. Press Space or tap the screen to cast the hook; catch 300 coins within 60 seconds.",
+    "error": "Failed to start the game: {message}"
+  }
+}

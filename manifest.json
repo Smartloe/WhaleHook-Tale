@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "0199a9c0-7c1d-7a4e-8f2b-000000000000",
+  "name": "鲸钩物语",
+  "tags": ["游戏", "钓鱼", "休闲"],
+  "version": "0.1.0",
+  "entry": "index.html",
+  "script": "app.js",
+  "style": "app.css",
+  "permissions": []
+}

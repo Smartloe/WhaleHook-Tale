@@ -1,0 +1,22 @@
+{
+  "name": "whalehook-tale",
+  "private": true,
+  "version": "0.1.0",
+  "description": "《鲸钩物语 / WhaleHook Tale》——DeepSeek 鲸鱼娘非官方同人钓鱼小游戏（免费、非商业）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:mini": "tsc --noEmit && vite build --mode mini && node scripts/package.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@discourse-mini-app/sdk": "file:vendor/discourse-mini-app-sdk",
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}
