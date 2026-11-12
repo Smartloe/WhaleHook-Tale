@@ -164,7 +164,7 @@ export class MenuScene extends Phaser.Scene {
     const line = LINES[Math.floor(Math.random() * LINES.length)];
     const bubbleY = artY - artHeight * 0.62;
     const bubble = this.add
-      .text(artX + artHeight * 0.17, bubbleY, line, {
+      .text(artX + artHeight * 0.06, bubbleY, line, {
         fontFamily: FONT_FAMILY,
         fontSize: '13px',
         color: '#0a2236',
