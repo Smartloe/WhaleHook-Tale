@@ -18,9 +18,12 @@
 ## 当前状态（MVP）
 
 - [x] 开始界面：标题、开始按钮、非官方同人声明
-- [x] 一个关卡（浅湾）：60 秒 / 目标 300 金币
+- [x] **12 关**：浅湾 / 珊瑚礁 / 沉船 / 深海沟 四个海域，每域 3 关
+- [x] 关卡机制：游动鱼群、礁石障碍（钩到弹回）、水母扣时间、宝箱闪现
+- [x] 选关页（星级 / 解锁状态）与**本机排行榜**（每关前 10 名 + 各关最佳）
+- [x] 二次元鲸鱼娘立绘与原创精灵图（见下「素材来源与许可」）
 - [x] 鲸鱼娘、鱼钩、鱼线、水面/海底背景——全部用 Phaser Graphics 绘制，无图片依赖
-- [x] 4 种可钩取物：小鱼（20 / 轻）、大鱼（60 / 中）、珍珠宝箱（150 / 重）、旧靴子（-15 / 轻）
+- [x] 可钩取物：小鱼、大鱼、珍珠宝箱、夜明珠、黄金鱼（加时）、旧靴子、水母（扣时）、礁石（障碍）
 - [x] 鱼钩状态机：`IDLE_SWING → SHOOTING → RETRACTING → SETTLE → IDLE_SWING`
 - [x] 圆形碰撞、重量影响回收速度、金币结算与飘字
 - [x] HUD：金币/目标、倒计时（≤10 秒变红）、关卡名
@@ -46,6 +49,11 @@ npm run preview      # 本地预览网页版构建产物
 ```
 
 操作：**空格** 或 **点击画面** 发射鱼钩；鱼钩会自动摆荡，无需按住。
+按钮采用「按下即触发」并带 250ms 防抖，手机上手指轻微滑动也不会点不中。
+
+排行榜说明：linux.do 微应用平台没有排行榜接口，`storage` 也只存在玩家本机，
+因此当前排行榜是**本机成绩榜**（每关前 10 名 + 各关最佳）。`src/systems/Leaderboard.ts`
+把数据源单独一层，将来接入服务端时只需替换该文件。
 
 ## 构建微应用运行包
 
@@ -136,8 +144,9 @@ src/
   types/game.ts           # CatchableData / HookState / HookTuning / 关卡与结算类型
   systems/
     StageLayout.ts        # 横屏 / 竖屏两套舞台坐标（船、竿尖、水域、边界、线长）
-    LevelConfig.ts        # 关卡数据 + HOOK_MOTION（手感参数）
-    Spawner.ts            # 水域内随机布点：在摆动扇区内、可触及、互不重叠
+    LevelConfig.ts        # 4 海域 × 3 关数据、星级线与 HOOK_MOTION（手感参数）
+    Spawner.ts            # 随机布点 + 游动 / 闪现标记
+    Leaderboard.ts        # 排行榜数据源（当前只读本机存档，便于将来接后端）
   objects/
     Hook.ts               # 鱼钩状态机、鱼线绘制、重量影响回收速度
     Catchable.ts          # 可钩取物（占位色块 + emoji，数据在 info 里）
@@ -149,7 +158,9 @@ src/
     shell.ts              # 微应用外壳适配：SDK 连接、首帧 ready、错误展示、降级为普通网页
   scenes/
     BootScene.ts          # 预留资源加载入口，目前直接进菜单
-    MenuScene.ts          # 标题、开始、同人声明、致谢入口
+    MenuScene.ts          # 标题、开始、选关、排行榜、致谢入口
+    LevelSelectScene.ts   # 12 关网格：星级与解锁状态
+    LeaderboardScene.ts   # 本机排行榜（单关前 10 + 各关最佳）
     CreditsScene.ts       # 制作与素材致谢（署名要求）
     GameScene.ts          # 主玩法循环
     ResultScene.ts        # 结算与重开

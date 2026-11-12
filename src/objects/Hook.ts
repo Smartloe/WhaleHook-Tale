@@ -63,6 +63,12 @@ export class Hook<T extends Hookable> {
     return true;
   }
 
+  /** 撞到礁石等障碍：立即转为回收（不吸附） */
+  bounceBack(): void {
+    if (this._state !== 'SHOOTING') return;
+    this._state = 'RETRACTING';
+  }
+
   /** 钩中目标：立即转为回收 */
   attach(target: T): void {
     if (this._state !== 'SHOOTING') return;

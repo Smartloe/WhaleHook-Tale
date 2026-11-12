@@ -4,9 +4,9 @@ import { Catchable } from '../objects/Catchable';
 import { WhaleGirl } from '../objects/WhaleGirl';
 import { Spawner } from '../systems/Spawner';
 import { Hud } from '../ui/Hud';
-import { FONT_FAMILY, HOOK_MOTION, LEVELS, getLevel, isLastLevel } from '../systems/LevelConfig';
+import { FONT_FAMILY, HOOK_MOTION, LEVELS, getLevel, isLastLevel, starsForScore } from '../systems/LevelConfig';
 import { createHookTuning, resolveStage, type StageLayout } from '../systems/StageLayout';
-import { loadSaveWithTimeout, updateSave } from '../platform/save';
+import { getSave, recordRun } from '../platform/save';
 import { playSfx, unlockAudio } from '../platform/sfx';
 import type {
   CatchableSpec,
@@ -112,6 +112,9 @@ export class GameScene extends Phaser.Scene {
 
     this.whale.update(delta);
     this.hook.update(delta);
+    for (const item of this.catches) {
+      item.update(delta);
+    }
 
     if (this.hook.state === 'SHOOTING') {
       this.checkCollision();
@@ -161,12 +164,22 @@ export class GameScene extends Phaser.Scene {
         target.x,
         target.y,
       );
-      if (distance <= target.radius + this.tuning.hookRadius) {
-        target.markCollected();
-        target.setDepth(6);
-        this.hook.attach(target);
+      if (distance > target.radius + this.tuning.hookRadius) continue;
+
+      // 礁石：钩子被弹回，不吸附
+      if (target.info.type === 'rock') {
+        this.hook.bounceBack();
+        playSfx('hit');
+        this.showFloatingText(target.x, target.y - 20, '礁石！', '#9fc2d8');
         return;
       }
+      // 闪现中的宝箱在暗下去时不可钩
+      if (!target.isHookable()) continue;
+
+      target.markCollected();
+      target.setDepth(6);
+      this.hook.attach(target);
+      return;
     }
   }
 
@@ -202,11 +215,38 @@ export class GameScene extends Phaser.Scene {
       this.showFloatingText(target.x, target.y - 42, `+${info.timeBonus} 秒`, '#aef0ff');
     }
 
+    if (info.timePenalty && info.timePenalty > 0) {
+      this.timeLeftMs = Math.max(0, this.timeLeftMs - info.timePenalty * 1000);
+      this.lastTickSecond = -1;
+      this.hud.setTime(this.timeLeftMs);
+      this.showFloatingText(target.x, target.y - 42, `−${info.timePenalty} 秒`, '#c9a7ff');
+    }
+
+    if (this.combo >= 3) {
+      this.flashComboGlow();
+    }
+
     this.whale.playPull();
     if (gained > 0) {
       this.flyCoins(target.x, target.y, Math.min(6, 2 + Math.round(gained / 40)));
     }
     target.playCollected(this);
+  }
+
+  /** 连击 3 次以上：屏幕边缘泛起的柔和金光 */
+  private flashComboGlow(): void {
+    const glow = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0xffd166, 0.1)
+      .setOrigin(0, 0)
+      .setDepth(18)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: glow,
+      alpha: 0,
+      duration: 380,
+      ease: 'Quad.easeOut',
+      onComplete: () => glow.destroy(),
+    });
   }
 
   /** 金币飞向 HUD 的反馈 */
@@ -328,13 +368,21 @@ export class GameScene extends Phaser.Scene {
 
   /** 先等一次存档读取（最多 600ms），避免用默认值覆盖真实最高分/解锁进度 */
   private async completeLevel(success: boolean): Promise<void> {
-    const save = await loadSaveWithTimeout(600);
-    const isNewBest = this.score > save.best && this.score > 0;
-    const best = Math.max(save.best, this.score);
-    const maxLevel = success
-      ? Math.max(save.maxLevel, Math.min(LEVELS.length, this.config.id + 1))
-      : save.maxLevel;
-    void updateSave({ best, maxLevel });
+    const stars = success ? starsForScore(this.config, this.score) : 0;
+    let best: number;
+    let bestStars: number;
+    let rank: number | null = null;
+    if (this.score > 0) {
+      const record = await recordRun(this.config.id, this.score, stars, success);
+      best = record.best;
+      bestStars = record.stars;
+      rank = record.rank;
+    } else {
+      const progress = getSave().levels[String(this.config.id)] ?? { best: 0, stars: 0 };
+      best = progress.best;
+      bestStars = progress.stars;
+    }
+    const isNewBest = this.score > 0 && rank === 1;
 
     const result: GameResultData = {
       levelId: this.config.id,
@@ -345,6 +393,9 @@ export class GameScene extends Phaser.Scene {
       timeLeftMs: this.timeLeftMs,
       best,
       isNewBest,
+      stars,
+      rank,
+      bestStars,
       nextLevelId: success && !isLastLevel(this.config.id) ? this.config.id + 1 : null,
       levelCount: LEVELS.length,
     };
@@ -359,7 +410,7 @@ export class GameScene extends Phaser.Scene {
   private drawBackdrop(): void {
     const { width, height, boat, waterTop } = this.stage;
     const kind = this.stage.kind === 'portrait' ? 'portrait' : 'landscape';
-    const key = `bg-${this.config.id}-${kind}`;
+    const key = `bg-zone${this.config.zone}-${kind}`;
 
     if (this.textures.exists(key)) {
       this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(width, height).setDepth(0);

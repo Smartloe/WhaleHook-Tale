@@ -3,7 +3,7 @@ import { createButton } from '../ui/Button';
 import { FONT_FAMILY } from '../systems/LevelConfig';
 import type { GameResultData } from '../types/game';
 
-/** 结算界面：半身立绘 + 星级 + 得分 + 下一关 */
+/** 结算界面：半身立绘 + 星级 + 得分 + 本机排名 + 三个按钮 */
 export class ResultScene extends Phaser.Scene {
   constructor() {
     super('Result');
@@ -14,16 +14,16 @@ export class ResultScene extends Phaser.Scene {
     const height = this.scale.height;
     this.cameras.main.setBackgroundColor('#08121d');
 
-    const key = width > height ? 'bg-1-landscape' : 'bg-1-portrait';
+    const key = width > height ? 'bg-zone1-landscape' : 'bg-zone1-portrait';
     if (this.textures.exists(key)) {
       this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(width, height).setDepth(0);
-      this.add.rectangle(0, 0, width, height, 0x03101c, 0.55).setOrigin(0, 0).setDepth(1);
+      this.add.rectangle(0, 0, width, height, 0x03101c, 0.58).setOrigin(0, 0).setDepth(1);
     }
 
     const panelWidth = Math.min(520, width - 40);
-    const panelHeight = Math.min(470, height - 90);
+    const panelHeight = Math.min(480, height - 80);
     const panelX = (width - panelWidth) / 2;
-    const panelY = (height - panelHeight) / 2 - 6;
+    const panelY = (height - panelHeight) / 2 - 4;
 
     this.add
       .nineslice(panelX, panelY, 'ui-panel', undefined, panelWidth, panelHeight, 30, 30, 30, 30)
@@ -36,9 +36,9 @@ export class ResultScene extends Phaser.Scene {
     const titleColor = result.success ? '#ffffff' : '#ffd5d5';
 
     this.add
-      .text(centerX, panelY + 26, title, {
+      .text(centerX, panelY + 24, title, {
         fontFamily: FONT_FAMILY,
-        fontSize: '36px',
+        fontSize: '34px',
         color: titleColor,
         fontStyle: 'bold',
         stroke: '#0a2236',
@@ -50,10 +50,10 @@ export class ResultScene extends Phaser.Scene {
     // 半身立绘
     if (this.textures.exists('whale-face')) {
       const face = this.add
-        .image(panelX + 74, panelY + 128, 'whale-face')
+        .image(panelX + 74, panelY + 140, 'whale-face')
         .setOrigin(0.5)
         .setDepth(3);
-      face.setScale(Math.min(1, 110 / face.height));
+      face.setScale(Math.min(1, 108 / face.height));
       this.tweens.add({
         targets: face,
         y: face.y - 4,
@@ -66,33 +66,26 @@ export class ResultScene extends Phaser.Scene {
 
     const infoX = panelX + panelWidth * 0.62;
 
-    if (result.success) {
-      const ratio = result.score / Math.max(1, result.targetScore);
-      const stars = ratio >= 1.5 ? 3 : ratio >= 1.15 ? 2 : 1;
-      for (let index = 0; index < 3; index += 1) {
-        const star = this.add
-          .text(infoX + (index - 1) * 40, panelY + 86, '★', {
-            fontFamily: FONT_FAMILY,
-            fontSize: '34px',
-            color: index < stars ? '#ffd166' : '#3d5a70',
-          })
-          .setOrigin(0.5)
-          .setDepth(3)
-          .setScale(0);
-        this.tweens.add({
-          targets: star,
-          scale: index < stars ? 1 : 0.8,
-          duration: 260,
-          delay: 160 + index * 150,
-          ease: 'Back.easeOut',
-        });
-      }
+    // 星级图标依次弹出
+    for (let index = 0; index < 3; index += 1) {
+      const star = this.add
+        .image(infoX + (index - 1) * 40, panelY + 96, index < result.stars ? 'ui-star' : 'ui-star-empty')
+        .setDisplaySize(34, 34)
+        .setDepth(3)
+        .setScale(0);
+      this.tweens.add({
+        targets: star,
+        scale: 1,
+        duration: 260,
+        delay: 160 + index * 150,
+        ease: 'Back.easeOut',
+      });
     }
 
     this.add
-      .text(infoX, panelY + 132, `${result.score}`, {
+      .text(infoX, panelY + 138, `${result.score}`, {
         fontFamily: FONT_FAMILY,
-        fontSize: '46px',
+        fontSize: '44px',
         color: '#ffe9a8',
         fontStyle: 'bold',
         stroke: '#0a2236',
@@ -102,7 +95,7 @@ export class ResultScene extends Phaser.Scene {
       .setDepth(3);
 
     this.add
-      .text(infoX, panelY + 172, `目标 ${result.targetScore}`, {
+      .text(infoX, panelY + 176, `目标 ${result.targetScore}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '13px',
         color: '#9fc2d8',
@@ -110,26 +103,27 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(3);
 
+    const rankText = result.rank ? `本关第 ${result.rank} 名` : '未进前十';
     this.add
-      .text(
-        infoX,
-        panelY + 198,
-        result.isNewBest ? `新纪录！最高 ${result.best}` : `最高 ${result.best}`,
-        {
-          fontFamily: FONT_FAMILY,
-          fontSize: '13px',
-          color: result.isNewBest ? '#8ef1b0' : '#9fc2d8',
-        },
-      )
+      .text(infoX, panelY + 200, rankText, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '13px',
+        color: result.rank === 1 ? '#ffd166' : '#bfe9ff',
+      })
       .setOrigin(0.5)
       .setDepth(3);
 
     this.add
-      .text(centerX, panelY + 250, `第 ${result.levelId} / ${result.levelCount} 关 · ${result.levelName}`, {
-        fontFamily: FONT_FAMILY,
-        fontSize: '14px',
-        color: '#bfe9ff',
-      })
+      .text(
+        infoX,
+        panelY + 222,
+        result.isNewBest ? `新纪录！最高 ${result.best}` : `最高 ${result.best}`,
+        {
+          fontFamily: FONT_FAMILY,
+          fontSize: '12px',
+          color: result.isNewBest ? '#8ef1b0' : '#9fc2d8',
+        },
+      )
       .setOrigin(0.5)
       .setDepth(3);
 
@@ -146,7 +140,7 @@ export class ResultScene extends Phaser.Scene {
         : '再试一次吧';
 
     this.add
-      .text(centerX, panelY + 282, comment, {
+      .text(centerX, panelY + 262, comment, {
         fontFamily: FONT_FAMILY,
         fontSize: '14px',
         color: '#cfeaff',
@@ -156,41 +150,45 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setDepth(3);
 
-    const buttonY = panelY + panelHeight - 58;
-    if (result.success && result.nextLevelId !== null) {
-      createButton(
-        this,
-        centerX - 104,
-        buttonY,
-        '下一关',
-        () => this.scene.start('Game', { levelId: result.nextLevelId }),
-        { width: 176, height: 56, fontSize: 20, primary: true },
-      ).setDepth(4);
-    } else {
-      createButton(
-        this,
-        centerX - 104,
-        buttonY,
-        result.success ? '再玩一局' : '再来一次',
-        () => this.scene.start('Game', { levelId: result.levelId }),
-        { width: 176, height: 56, fontSize: 20, primary: true },
-      ).setDepth(4);
-    }
+    const buttonY = panelY + panelHeight - 96;
+    const primaryLabel =
+      result.success && result.nextLevelId !== null
+        ? '下一关'
+        : result.success
+          ? '再玩一局'
+          : '再来一次';
+    const primaryTarget = result.success && result.nextLevelId !== null ? result.nextLevelId : result.levelId;
+
     createButton(
       this,
-      centerX + 104,
+      centerX,
       buttonY,
-      '返回标题',
-      () => {
-        this.scene.start('Menu');
-      },
-      { width: 176, height: 56, fontSize: 20 },
+      primaryLabel,
+      () => this.scene.start('Game', { levelId: primaryTarget }),
+      { width: 260, height: 54, fontSize: 20, primary: true },
+    ).setDepth(4);
+
+    createButton(
+      this,
+      centerX - 92,
+      buttonY + 66,
+      '选关',
+      () => this.scene.start('LevelSelect'),
+      { width: 168, height: 44, fontSize: 16 },
+    ).setDepth(4);
+    createButton(
+      this,
+      centerX + 92,
+      buttonY + 66,
+      '排行榜',
+      () => this.scene.start('Leaderboard'),
+      { width: 168, height: 44, fontSize: 16 },
     ).setDepth(4);
 
     this.add
-      .text(centerX, height - 20, '非官方同人作品 · 免费非商业 · 禁止售卖或广告变现', {
+      .text(centerX, height - 16, '非官方同人作品 · 免费非商业 · 禁止售卖或广告变现', {
         fontFamily: FONT_FAMILY,
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#6f93ad',
       })
       .setOrigin(0.5, 1)

@@ -243,6 +243,118 @@ def boat(width: int) -> Image.Image:
     return finish(layer, (width, round(width * 0.36)), outline=4)
 
 
+def pill_button(w: int, h: int, top: int, bottom: int, edge: int, border: int) -> Image.Image:
+    """药丸形按钮：底部深色厚度 + 上亮下暗渐变 + 柔和顶部高光。"""
+    W, H = w * SS, h * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    radius = (h // 2 - 1) * SS
+    # 底部厚度
+    d.rounded_rectangle((0, 5 * SS, W - 1, H - 1), radius=radius, fill=rgba(edge))
+    # 主体渐变
+    mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, W - 1, H - 7 * SS), radius=radius, fill=255)
+    grad = Image.new("RGBA", (W, H))
+    gd = ImageDraw.Draw(grad)
+    body_h = H - 7 * SS
+    for y in range(H):
+        t = min(1.0, y / max(1, body_h))
+        c = tuple(int(rgba(top)[i] * (1 - t) + rgba(bottom)[i] * t) for i in range(3)) + (255,)
+        gd.line([(0, y), (W, y)], fill=c)
+    layer.paste(grad, (0, 0), mask)
+    d = ImageDraw.Draw(layer)
+    d.rounded_rectangle((2 * SS, 2 * SS, W - 2 * SS, body_h - 2 * SS), radius=radius - 2 * SS, outline=rgba(border), width=2 * SS)
+    # 顶部高光弧
+    hl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(hl).rounded_rectangle((10 * SS, 5 * SS, W - 10 * SS, int(body_h * 0.42)), radius=radius, fill=(255, 255, 255, 46))
+    layer = Image.alpha_composite(layer, hl.filter(ImageFilter.GaussianBlur(3 * SS)))
+    return layer.resize((w, h), Image.LANCZOS)
+
+
+def icon_button(size: int, top: int, bottom: int, border: int) -> Image.Image:
+    W = H = size * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.ellipse((0, 4 * SS, W - 1, H - 1), fill=rgba(0x0a2033))
+    mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, W - 1, H - 6 * SS), fill=255)
+    grad = Image.new("RGBA", (W, H))
+    gd = ImageDraw.Draw(grad)
+    for y in range(H):
+        t = y / max(1, H)
+        c = tuple(int(rgba(top)[i] * (1 - t) + rgba(bottom)[i] * t) for i in range(3)) + (255,)
+        gd.line([(0, y), (W, y)], fill=c)
+    layer.paste(grad, (0, 0), mask)
+    d = ImageDraw.Draw(layer)
+    d.ellipse((2 * SS, 2 * SS, W - 2 * SS, H - 8 * SS), outline=rgba(border), width=2 * SS)
+    return layer.resize((size, size), Image.LANCZOS)
+
+
+def star_icon(size: int, fill: int | None, stroke: int) -> Image.Image:
+    W = H = 120 * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    cx, cy, outer, inner = 60 * SS, 62 * SS, 52 * SS, 23 * SS
+    points = []
+    for i in range(10):
+        r = outer if i % 2 == 0 else inner
+        ang = math.radians(-90 + i * 36)
+        points.append((cx + math.cos(ang) * r, cy + math.sin(ang) * r))
+    if fill is not None:
+        d.polygon(points, fill=rgba(fill))
+    d.line(points + [points[0]], fill=rgba(stroke), width=5 * SS, joint="curve")
+    if fill is not None:
+        d.ellipse((cx - 22 * SS, cy - 26 * SS, cx - 4 * SS, cy - 10 * SS), fill=(255, 255, 255, 90))
+    return finish(layer, (size, size), outline=3)
+
+
+def round_icon(name: str, size: int) -> Image.Image:
+    """简单的矢量图标：金币、时钟、奖杯、返回、锁、声音、静音、宝箱开箱。"""
+    S = 128 * SS
+    layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    c = S // 2
+    white = (255, 255, 255, 255)
+    gold = rgba(0xffd166)
+    ink = rgba(0x0a2236)
+
+    if name == "coin":
+        d.ellipse((10 * SS, 10 * SS, S - 10 * SS, S - 10 * SS), fill=gold)
+        d.ellipse((22 * SS, 22 * SS, S - 22 * SS, S - 22 * SS), outline=rgba(0xc98a1f), width=6 * SS)
+        d.polygon([(c, 36 * SS), (58 * SS, 74 * SS), (70 * SS, 74 * SS), (c, 36 * SS)], fill=rgba(0xc98a1f))
+        d.line([(c, 44 * SS), (c, 92 * SS)], fill=rgba(0xc98a1f), width=8 * SS)
+        d.line([(46 * SS, 62 * SS), (82 * SS, 62 * SS)], fill=rgba(0xc98a1f), width=7 * SS)
+        d.ellipse((34 * SS, 22 * SS, 62 * SS, 42 * SS), fill=(255, 255, 255, 110))
+    elif name == "clock":
+        d.ellipse((12 * SS, 12 * SS, S - 12 * SS, S - 12 * SS), fill=(240, 248, 255, 255))
+        d.ellipse((12 * SS, 12 * SS, S - 12 * SS, S - 12 * SS), outline=rgba(0x6f93ad), width=6 * SS)
+        d.line([(c, c), (c, 42 * SS)], fill=ink, width=7 * SS)
+        d.line([(c, c), (86 * SS, 76 * SS)], fill=ink, width=7 * SS)
+        d.ellipse((c - 7 * SS, c - 7 * SS, c + 7 * SS, c + 7 * SS), fill=gold)
+    elif name == "trophy":
+        d.rounded_rectangle((38 * SS, 24 * SS, 90 * SS, 70 * SS), radius=18 * SS, fill=gold)
+        d.arc((14 * SS, 26 * SS, 50 * SS, 66 * SS), 90, 270, fill=gold, width=9 * SS)
+        d.arc((78 * SS, 26 * SS, 114 * SS, 66 * SS), 270, 90, fill=gold, width=9 * SS)
+        d.rectangle((58 * SS, 68 * SS, 70 * SS, 88 * SS), fill=gold)
+        d.rounded_rectangle((44 * SS, 88 * SS, 84 * SS, 102 * SS), radius=6 * SS, fill=gold)
+        d.ellipse((52 * SS, 34 * SS, 66 * SS, 50 * SS), fill=(255, 255, 255, 120))
+    elif name == "back":
+        d.line([(78 * SS, 30 * SS), (46 * SS, 64 * SS), (78 * SS, 98 * SS)], fill=white, width=12 * SS, joint="curve")
+    elif name == "lock":
+        d.arc((40 * SS, 26 * SS, 88 * SS, 74 * SS), 180, 360, fill=gold, width=10 * SS)
+        d.rounded_rectangle((30 * SS, 60 * SS, 98 * SS, 108 * SS), radius=12 * SS, fill=gold)
+        d.ellipse((58 * SS, 74 * SS, 70 * SS, 90 * SS), fill=ink)
+    elif name in ("sound", "mute"):
+        d.polygon([(30 * SS, 52 * SS), (50 * SS, 34 * SS), (50 * SS, 94 * SS), (30 * SS, 76 * SS)], fill=white)
+        if name == "sound":
+            d.arc((46 * SS, 40 * SS, 86 * SS, 88 * SS), 300, 60, fill=white, width=7 * SS)
+            d.arc((40 * SS, 26 * SS, 104 * SS, 102 * SS), 300, 60, fill=white, width=7 * SS)
+        else:
+            d.line([(72 * SS, 46 * SS), (100 * SS, 82 * SS)], fill=rgba(0xff8a8a), width=10 * SS)
+            d.line([(100 * SS, 46 * SS), (72 * SS, 82 * SS)], fill=rgba(0xff8a8a), width=10 * SS)
+    return finish(layer, (size, size), outline=4)
+
+
 def panel(w: int, h: int, fill_top: int, fill_bottom: int, border: int, radius: int) -> Image.Image:
     """九宫格面板/按钮底图（不加外描边，边框由自身绘制）。"""
     W, H = w * SS, h * SS
@@ -322,6 +434,97 @@ def save(img: Image.Image, rel: str, quality: int = 88) -> None:
     print(f"  {rel:38s} {img.size[0]}x{img.size[1]}  {os.path.getsize(path) // 1024} KiB")
 
 
+def jellyfish(size: int) -> Image.Image:
+    W = H = 200 * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((10 * SS, 10 * SS, 190 * SS, 190 * SS), fill=(190, 140, 255, 110))
+    layer = Image.alpha_composite(layer, glow.filter(ImageFilter.GaussianBlur(16 * SS)))
+    d = ImageDraw.Draw(layer)
+    # 伞盖
+    d.pieslice((30 * SS, 34 * SS, 170 * SS, 168 * SS), 180, 360, fill=rgba(0xc9a7ff))
+    d.rectangle((30 * SS, 100 * SS, 170 * SS, 108 * SS), fill=rgba(0xb491f5))
+    d.ellipse((52 * SS, 48 * SS, 96 * SS, 78 * SS), fill=(255, 255, 255, 90))
+    # 触须
+    for i in range(5):
+        x = 46 + i * 28
+        d.line([(x * SS, 104 * SS), ((x - 6) * SS, 140 * SS), ((x + 8) * SS, 172 * SS)],
+               fill=rgba(0xc9a7ff), width=6 * SS, joint="curve")
+    # 小脸
+    d.ellipse((74 * SS, 62 * SS, 88 * SS, 78 * SS), fill=rgba(0x2a1d3a))
+    d.ellipse((112 * SS, 62 * SS, 126 * SS, 78 * SS), fill=rgba(0x2a1d3a))
+    d.arc((86 * SS, 76 * SS, 112 * SS, 94 * SS), 200, 340, fill=rgba(0x2a1d3a), width=4 * SS)
+    return finish(layer, (size, size))
+
+
+def rock(size: int) -> Image.Image:
+    W = H = 220 * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.polygon([(28 * SS, 168 * SS), (56 * SS, 96 * SS), (104 * SS, 60 * SS),
+               (156 * SS, 88 * SS), (192 * SS, 150 * SS), (180 * SS, 176 * SS), (44 * SS, 176 * SS)],
+              fill=rgba(0x3f5a6e))
+    d.polygon([(56 * SS, 96 * SS), (104 * SS, 60 * SS), (120 * SS, 100 * SS), (80 * SS, 130 * SS)],
+              fill=rgba(0x55768c))
+    d.line([(104 * SS, 60 * SS), (120 * SS, 100 * SS)], fill=rgba(0x2c4152), width=4 * SS)
+    d.line([(120 * SS, 100 * SS), (168 * SS, 120 * SS)], fill=rgba(0x2c4152), width=4 * SS)
+    # 海草点缀
+    d.line([(70 * SS, 100 * SS), (60 * SS, 66 * SS)], fill=rgba(0x3fbf8a), width=7 * SS)
+    d.line([(70 * SS, 100 * SS), (84 * SS, 72 * SS)], fill=rgba(0x2f9e74), width=6 * SS)
+    return finish(layer, (size, size), outline=5)
+
+
+def title_art(text: str = "鲸钩物语") -> Image.Image | None:
+    """用系统粗体中文字体渲染标题艺术字；没有可用字体时返回 None。"""
+    try:
+        from PIL import ImageFont
+    except Exception:
+        return None
+    candidates = [
+        ("/System/Library/Fonts/STHeiti Medium.ttc", 4),
+        ("/System/Library/Fonts/Supplemental/Songti.ttc", 0),
+        ("/System/Library/Fonts/Hiragino Sans GB.ttc", 0),
+    ]
+    font = None
+    for path, index in candidates:
+        try:
+            font = ImageFont.truetype(path, 150 * SS // 2, index=index)
+            break
+        except Exception:
+            continue
+    if font is None:
+        return None
+    pad = 40 * SS // 2
+    bbox = font.getbbox(text)
+    w = bbox[2] - bbox[0] + pad * 2
+    h = bbox[3] - bbox[1] + pad * 2
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=255)
+    # 金色渐变填充
+    grad = Image.new("RGBA", (w, h))
+    gd = ImageDraw.Draw(grad)
+    for y in range(h):
+        t = y / max(1, h - 1)
+        c = (int(255 - 20 * t), int(233 - 60 * t), int(168 - 90 * t), 255)
+        gd.line([(0, y), (w, y)], fill=c)
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    layer.paste(grad, (0, 0), mask)
+    # 粗白描边 + 深蓝外描边 + 投影
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    for radius, color in ((10, (10, 34, 54)), (5, (255, 255, 255))):
+        stroke = mask.filter(ImageFilter.MaxFilter(radius * 2 + 1))
+        tint = Image.new("RGBA", (w, h), color + (255,))
+        tint.putalpha(stroke)
+        out = Image.alpha_composite(out, tint)
+    shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(6)))
+    shadowed = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    shadowed.paste(Image.new("RGBA", (w, h), (4, 12, 22, 140)), (0, 8), shadow)
+    out = Image.alpha_composite(shadowed, out)
+    out = Image.alpha_composite(out, layer)
+    return out
+
+
 def main() -> int:
     print("生成精灵图 ->", OUT)
     save(fish(0x8fdcff, 0x3fa6e8, 0x2f8fd8, 128), "items/fish-small.webp")
@@ -330,21 +533,36 @@ def main() -> int:
     save(treasure(140), "items/treasure.webp")
     save(pearl(128), "items/pearl.webp")
     save(boot(128), "items/boot.webp")
+    save(jellyfish(120), "items/jellyfish.webp")
+    save(rock(150), "items/rock.webp")
     save(hook_sprite(72), "items/hook.webp")
     save(boat(300), "scene/boat.webp")
 
-    save(panel(240, 72, 0x2b78b8, 0x16466f, 0xbfe9ff, 22), "ui/button.webp", quality=92)
-    save(panel(240, 72, 0xff9bbb, 0xd95d86, 0xffe1ea, 22), "ui/button-primary.webp", quality=92)
-    save(panel(360, 120, 0x0f2f4f, 0x0a1f36, 0x7fc7ef, 24), "ui/panel.webp", quality=92)
+    save(pill_button(240, 72, 0x2f86c9, 0x1a5c93, 0x0d3a5c, 0xbfe9ff), "ui/button.webp", quality=92)
+    save(pill_button(240, 72, 0xff9ec0, 0xe0567f, 0x9c2f52, 0xffe1ea), "ui/button-primary.webp", quality=92)
+    save(icon_button(72, 0x1d4a6b, 0x0f2f4a, 0x8fd4ff), "ui/icon-button.webp", quality=92)
+    save(panel(360, 200, 0x123b5c, 0x0a2440, 0x8fd4ff, 30), "ui/panel.webp", quality=92)
 
-    palettes = [
-        ("bg-1", 0x0b1630, 0x1c3e6a, 0x1f6f9a, 0x0a2a44),
-        ("bg-2", 0x101a3a, 0x2b4f7a, 0x1f8a92, 0x0b3340),
-        ("bg-3", 0x050b1c, 0x14254a, 0x123a66, 0x040f22),
+    for name in ("coin", "clock", "trophy", "back", "lock", "sound", "mute"):
+        save(round_icon(name, 48), f"ui/icon-{name}.webp", quality=92)
+    save(star_icon(44, 0xffd166, 0xc98a1f), "ui/star.webp", quality=92)
+    save(star_icon(44, None, 0x6f93ad), "ui/star-empty.webp", quality=92)
+
+    title = title_art()
+    if title is not None:
+        save(title, "ui/title.webp", quality=90)
+    else:
+        print("  （跳过标题艺术字：没有可用中文字体）")
+
+    zones = [
+        ("zone1", 0x0b1630, 0x1c3e6a, 0x1f6f9a, 0x0a2a44),
+        ("zone2", 0x101a3a, 0x2b4f7a, 0x1f8a92, 0x0b3340),
+        ("zone3", 0x0a1424, 0x24405f, 0x1b5a72, 0x081b2a),
+        ("zone4", 0x050b1c, 0x14254a, 0x123a66, 0x040f22),
     ]
-    for index, (name, st, sb, wt, wb) in enumerate(palettes, start=1):
-        save(background(960, 640, st, sb, wt, wb, 186, seed=index), f"scene/{name}-landscape.webp", quality=80)
-        save(background(640, 960, st, sb, wt, wb, 232, seed=index + 10), f"scene/{name}-portrait.webp", quality=80)
+    for index, (name, st, sb, wt, wb) in enumerate(zones, start=1):
+        save(background(960, 640, st, sb, wt, wb, 186, seed=index), f"scene/bg-{name}-landscape.webp", quality=80)
+        save(background(640, 960, st, sb, wt, wb, 232, seed=index + 10), f"scene/bg-{name}-portrait.webp", quality=80)
 
     total = sum(p.stat().st_size for p in OUT.rglob("*.webp"))
     print(f"总计 {total // 1024} KiB")

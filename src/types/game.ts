@@ -5,7 +5,12 @@ export type CatchableType =
   | 'treasure'
   | 'pearl'
   | 'golden_fish'
-  | 'boot';
+  | 'boot'
+  | 'jellyfish'
+  | 'rock';
+
+/** 关卡机制：游动鱼群 / 礁石障碍 / 水母扣时间 / 宝箱闪现 */
+export type LevelMechanic = 'swim' | 'rocks' | 'jelly' | 'flash';
 
 /** 稀有度，仅用于表现与后续掉落表扩展 */
 export type Rarity = 'common' | 'rare' | 'junk';
@@ -31,6 +36,12 @@ export interface CatchableData {
   collected: boolean;
   /** 钓上来后增加的剩余秒数（黄金鱼） */
   timeBonus?: number;
+  /** 钓上来后减少的剩余秒数（水母） */
+  timePenalty?: number;
+  /** 游动速度与范围（像素/秒） */
+  swim?: { speed: number; minX: number; maxX: number; phase: number };
+  /** 闪现物件：每隔一段时间显隐 */
+  flashing?: boolean;
 }
 
 /** 鱼钩可吸附对象的最小契约 */
@@ -87,6 +98,12 @@ export interface CatchableSpec {
   count: number;
   /** 钓上来后增加的剩余秒数（黄金鱼） */
   timeBonus?: number;
+  /** 钓上来后减少的剩余秒数（水母） */
+  timePenalty?: number;
+  /** 游动速度与范围（像素/秒） */
+  swim?: { speed: number; minX: number; maxX: number; phase: number };
+  /** 闪现物件：每隔一段时间显隐 */
+  flashing?: boolean;
 }
 
 /** 关卡水体配色，让每一关有不同氛围 */
@@ -104,6 +121,12 @@ export interface LevelConfigData {
   timeLimitMs: number;
   targetScore: number;
   palette: LevelPalette;
+  /** 所属海域（1-4），决定背景图与选关分组 */
+  zone: number;
+  /** 本关启用的特殊机制 */
+  mechanics: LevelMechanic[];
+  /** 一星 / 二星 / 三星分数线 */
+  starThresholds: [number, number, number];
   catches: CatchableSpec[];
 }
 
@@ -119,6 +142,12 @@ export interface GameResultData {
   best: number;
   /** 本局是否刷新纪录 */
   isNewBest: boolean;
+  /** 本局星级（0-3） */
+  stars: number;
+  /** 本局在单关榜上的名次；未进前 10 为 null */
+  rank: number | null;
+  /** 本关历史最高星级 */
+  bestStars: number;
   /** 成功后要进入的下一关；null 表示已是最后一关 */
   nextLevelId: number | null;
   /** 总关卡数 */

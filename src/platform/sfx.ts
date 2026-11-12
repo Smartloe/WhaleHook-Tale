@@ -5,7 +5,7 @@
  * 未获批、被静音或浏览器不支持时，这里静默降级（游戏照常运行）。
  * 首次用户操作时调用 `unlockAudio()` 以满足浏览器的自动播放策略。
  */
-type SfxName = 'cast' | 'hit' | 'coin' | 'treasure' | 'junk' | 'tick' | 'win' | 'lose';
+type SfxName = 'click' | 'cast' | 'hit' | 'coin' | 'treasure' | 'junk' | 'tick' | 'win' | 'lose';
 
 let context: AudioContext | null = null;
 let unavailable = false;
@@ -92,6 +92,9 @@ export function playSfx(name: SfxName): void {
     return;
   }
   switch (name) {
+    case 'click':
+      tone(ctx, { frequency: 620, slideTo: 880, duration: 0.05, type: 'triangle', gain: 0.22 });
+      break;
     case 'cast':
       tone(ctx, { frequency: 720, slideTo: 300, duration: 0.14, type: 'triangle', gain: 0.35 });
       break;

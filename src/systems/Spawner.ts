@@ -18,9 +18,14 @@ export class Spawner {
   spawn(level: LevelConfigData, area: SpawnArea, tuning: HookTuning): CatchableData[] {
     const placed: CatchableData[] = [];
 
+    const swimEnabled = level.mechanics.includes('swim');
+    const flashEnabled = level.mechanics.includes('flash');
+
     level.catches.forEach((spec, specIndex) => {
       for (let i = 0; i < spec.count; i += 1) {
         const spot = this.pickSpot(area, placed, spec.radius, tuning);
+        const canSwim =
+          swimEnabled && (spec.type === 'fish_small' || spec.type === 'fish_big' || spec.type === 'golden_fish');
         placed.push({
           id: `${level.id}-${spec.type}-${specIndex}-${i}`,
           type: spec.type,
@@ -33,6 +38,18 @@ export class Spawner {
           y: Phaser.Math.Clamp(spot.y, area.minY + spec.radius, area.maxY - spec.radius),
           collected: false,
           ...(spec.timeBonus === undefined ? {} : { timeBonus: spec.timeBonus }),
+          ...(spec.timePenalty === undefined ? {} : { timePenalty: spec.timePenalty }),
+          ...(canSwim
+            ? {
+                swim: {
+                  speed: Phaser.Math.Between(26, 46) + level.id * 1.6,
+                  minX: area.minX + spec.radius,
+                  maxX: area.maxX - spec.radius,
+                  phase: Math.random() * Math.PI * 2,
+                },
+              }
+            : {}),
+          ...(flashEnabled && spec.type === 'treasure' ? { flashing: true } : {}),
         });
       }
     });

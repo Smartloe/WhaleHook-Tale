@@ -1,7 +1,7 @@
 {
   "name": "whalehook-tale",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "《鲸钩物语 / WhaleHook Tale》——DeepSeek 鲸鱼娘非官方同人钓鱼小游戏（免费、非商业）",
   "type": "module",
   "scripts": {

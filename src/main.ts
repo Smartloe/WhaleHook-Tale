@@ -5,6 +5,8 @@ import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { ResultScene } from './scenes/ResultScene';
 import { CreditsScene } from './scenes/CreditsScene';
+import { LevelSelectScene } from './scenes/LevelSelectScene';
+import { LeaderboardScene } from './scenes/LeaderboardScene';
 import {
   isViewportReliable,
   readViewport,
@@ -45,7 +47,15 @@ function buildConfig(stage: StageLayout): Phaser.Types.Core.GameConfig {
     audio: {
       noAudio: true,
     },
-    scene: [BootScene, MenuScene, GameScene, ResultScene, CreditsScene],
+    scene: [
+    BootScene,
+    MenuScene,
+    GameScene,
+    ResultScene,
+    CreditsScene,
+    LevelSelectScene,
+    LeaderboardScene,
+  ],
   };
 }
 

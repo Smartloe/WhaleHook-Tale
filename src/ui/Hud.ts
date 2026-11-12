@@ -4,7 +4,7 @@ import { getSave, loadSave, updateSave } from '../platform/save';
 import { isMuted, setMuted, unlockAudio } from '../platform/sfx';
 import type { LevelConfigData } from '../types/game';
 
-/** 顶部 HUD：关卡、金币进度条、倒计时、连击与静音开关 */
+/** 顶部 HUD：金币胶囊、倒计时、关卡名、连击与静音开关 */
 export class Hud {
   private readonly scene: Phaser.Scene;
   private readonly scoreText: Phaser.GameObjects.Text;
@@ -13,7 +13,7 @@ export class Hud {
   private readonly comboText: Phaser.GameObjects.Text;
   private readonly progress: Phaser.GameObjects.Graphics;
   private readonly progressWidth: number;
-  private readonly muteText: Phaser.GameObjects.Text;
+  private readonly muteIcon: Phaser.GameObjects.Image;
   private readonly targetScore: number;
   private lastSeconds = -1;
   private muteTouched = false;
@@ -23,87 +23,82 @@ export class Hud {
     this.targetScore = level.targetScore;
     const width = scene.scale.width;
     const height = scene.scale.height;
-    this.progressWidth = 300;
+    const compact = width < 760;
+    const leftWidth = compact ? 300 : 344;
+    this.progressWidth = leftWidth - 64;
 
-    scene.add
-      .image(16, 14, 'ui-panel')
-      .setOrigin(0, 0)
-      .setDisplaySize(344, 78)
-      .setDepth(19);
-    scene.add
-      .image(width - 176, 14, 'ui-panel')
-      .setOrigin(0, 0)
-      .setDisplaySize(160, 78)
-      .setDepth(19);
+    scene.add.image(16, 14, 'ui-panel').setOrigin(0, 0).setDisplaySize(leftWidth, 78).setDepth(19);
+    scene.add.image(width - 152, 14, 'ui-panel').setOrigin(0, 0).setDisplaySize(136, 78).setDepth(19);
 
-    scene.add
-      .text(34, 24, `第 ${level.id} 关 · ${level.name}`, {
-        fontFamily: FONT_FAMILY,
-        fontSize: '14px',
-        color: '#bfe9ff',
-      })
-      .setDepth(20);
-
+    scene.add.image(44, 42, 'ui-coin').setDisplaySize(26, 26).setDepth(20);
     this.scoreText = scene.add
-      .text(34, 44, '', {
+      .text(62, 24, '', {
         fontFamily: FONT_FAMILY,
         fontSize: '21px',
         color: '#ffe9a8',
+        fontStyle: 'bold',
+        stroke: '#0a2236',
+        strokeThickness: 4,
+      })
+      .setDepth(20);
+
+    scene.add
+      .text(62, 50, `${level.name} · 目标 ${level.targetScore}`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '12px',
+        color: '#9fc2d8',
       })
       .setDepth(20);
 
     this.progress = scene.add.graphics().setDepth(20);
 
-    this.comboText = scene.add
-      .text(34, 98, '', {
+    scene.add.image(width - 130, 50, 'ui-clock').setDisplaySize(30, 30).setDepth(20);
+    this.timeText = scene.add
+      .text(width - 30, 30, '', {
         fontFamily: FONT_FAMILY,
-        fontSize: '15px',
+        fontSize: '30px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#0a2236',
+        strokeThickness: 5,
+      })
+      .setOrigin(1, 0)
+      .setDepth(20);
+
+    this.comboText = scene.add
+      .text(width / 2, 40, '', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '18px',
         color: '#ffd166',
         fontStyle: 'bold',
+        stroke: '#0a2236',
+        strokeThickness: 4,
       })
+      .setOrigin(0.5, 0)
       .setDepth(20)
       .setAlpha(0);
 
-    scene.add
-      .text(width - 34, 24, '剩余时间', {
-        fontFamily: FONT_FAMILY,
-        fontSize: '12px',
-        color: '#8fc7e8',
-      })
-      .setOrigin(1, 0)
-      .setDepth(20);
-
-    this.timeText = scene.add
-      .text(width - 34, 40, '', {
-        fontFamily: FONT_FAMILY,
-        fontSize: '32px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(1, 0)
-      .setDepth(20);
-
     this.hintText = scene.add
-      .text(width / 2, height - 30, '按 空格 或 点击画面 发射鱼钩', {
+      .text(width / 2, height - 28, '按 空格 或 点击画面 发射鱼钩', {
         fontFamily: FONT_FAMILY,
-        fontSize: '15px',
+        fontSize: '14px',
         color: '#9ad8f5',
+        stroke: '#0a2236',
+        strokeThickness: 3,
       })
       .setOrigin(0.5)
       .setDepth(20)
-      .setAlpha(0.9);
+      .setAlpha(0.92);
 
-    this.muteText = scene.add
-      .text(width - 28, height - 30, isMuted() ? '🔇' : '🔊', {
-        fontFamily: FONT_FAMILY,
-        fontSize: '20px',
-        color: '#d8f1ff',
-      })
-      .setOrigin(0.5)
-      .setDepth(21);
+    // 静音图标按钮
+    scene.add.image(width - 30, height - 30, 'ui-icon-button').setDisplaySize(48, 48).setDepth(21);
+    this.muteIcon = scene.add
+      .image(width - 30, height - 30, isMuted() ? 'ui-mute' : 'ui-sound')
+      .setDisplaySize(24, 24)
+      .setDepth(22);
     scene.add
-      .circle(width - 28, height - 30, 24, 0xffffff, 0.001)
-      .setDepth(21)
+      .zone(width - 30, height - 30, 56, 56)
+      .setDepth(23)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
         this.muteTouched = true;
@@ -113,6 +108,7 @@ export class Hud {
         void updateSave({ muted: next });
         this.refreshMute();
       });
+
     setMuted(getSave().muted);
     this.refreshMute();
     void loadSave().then((save) => {
@@ -126,16 +122,16 @@ export class Hud {
   }
 
   setScore(score: number): void {
-    this.scoreText.setText(`金币 ${score} / ${this.targetScore}`);
+    this.scoreText.setText(String(score));
     const ratio = Phaser.Math.Clamp(score / Math.max(1, this.targetScore), 0, 1);
     const width = this.progressWidth;
     this.progress.clear();
-    this.progress.fillStyle(0x10354d, 1);
-    this.progress.fillRoundedRect(34, 70, width, 8, 4);
+    this.progress.fillStyle(0x0b2740, 1);
+    this.progress.fillRoundedRect(62, 70, width, 9, 4);
     this.progress.fillStyle(ratio >= 1 ? 0x8ef1b0 : 0xffd166, 1);
-    this.progress.fillRoundedRect(34, 70, Math.max(6, width * ratio), 8, 4);
-    this.progress.lineStyle(1, 0x9fe3ff, 0.35);
-    this.progress.strokeRoundedRect(34, 70, width, 8, 4);
+    this.progress.fillRoundedRect(62, 70, Math.max(8, width * ratio), 9, 4);
+    this.progress.lineStyle(1, 0xbfe9ff, 0.35);
+    this.progress.strokeRoundedRect(62, 70, width, 9, 4);
   }
 
   setTime(ms: number): void {
@@ -143,7 +139,16 @@ export class Hud {
     if (seconds === this.lastSeconds) return;
     this.lastSeconds = seconds;
     this.timeText.setText(String(seconds));
-    this.timeText.setColor(seconds <= 10 ? '#ff8a8a' : '#ffffff');
+    const urgent = seconds <= 10;
+    this.timeText.setColor(urgent ? '#ff8a8a' : '#ffffff');
+    if (urgent) {
+      this.scene.tweens.add({
+        targets: this.timeText,
+        scale: { from: 1.18, to: 1 },
+        duration: 220,
+        ease: 'Quad.easeOut',
+      });
+    }
   }
 
   setCombo(combo: number): void {
@@ -151,7 +156,7 @@ export class Hud {
       this.comboText.setText(`连击 ×${combo}`).setAlpha(1);
       this.scene.tweens.add({
         targets: this.comboText,
-        scale: { from: 1.12, to: 1 },
+        scale: { from: 1.18, to: 1 },
         duration: 180,
         ease: 'Quad.easeOut',
       });
@@ -171,6 +176,6 @@ export class Hud {
   }
 
   private refreshMute(): void {
-    this.muteText.setText(isMuted() ? '🔇' : '🔊');
+    this.muteIcon.setTexture(isMuted() ? 'ui-mute' : 'ui-sound');
   }
 }
