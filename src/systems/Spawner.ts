@@ -32,6 +32,7 @@ export class Spawner {
           x: Phaser.Math.Clamp(spot.x, area.minX + spec.radius, area.maxX - spec.radius),
           y: Phaser.Math.Clamp(spot.y, area.minY + spec.radius, area.maxY - spec.radius),
           collected: false,
+          ...(spec.timeBonus === undefined ? {} : { timeBonus: spec.timeBonus }),
         });
       }
     });

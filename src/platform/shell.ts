@@ -86,19 +86,52 @@ export function disposeShell(): void {
   sdk = null;
 }
 
+/** 供存档等模块复用宿主 SDK；未在微应用容器内时为 null */
+export function getHostSDK(): MiniAppSDK | null {
+  return sdk;
+}
+
 function notifyReady(): void {
   if (readySent || disposed || !sdk) {
     return;
   }
   readySent = true;
   const current = sdk;
-  // 同上：不能用 requestAnimationFrame，用 setTimeout 保证一定能送达。
+  // 不能用 requestAnimationFrame：平台在收到 app-rendered 前会把应用 frame 设为
+  // hidden/inert，隐藏文档里的 rAF 不会回调。用 setTimeout 保证一定能送达，
+  // 并先等 SDK 的连接握手（sdk.ready），失败时允许重试。
   window.setTimeout(() => {
+    void sendReady(current, 0);
+  }, 0);
+}
+
+async function sendReady(current: MiniAppSDK, attempt: number): Promise<void> {
+  if (disposed) {
+    return;
+  }
+  try {
+    await current.ready;
     if (disposed) {
       return;
     }
-    void current.lifecycle.ready().catch((error: unknown) => {
-      console.warn('[whalehook] lifecycle.ready 失败', error);
-    });
-  }, 0);
+    await current.lifecycle.ready();
+  } catch (error) {
+    if (disposed) {
+      return;
+    }
+    console.warn('[whalehook] lifecycle.ready 失败，将重试', error);
+    if (attempt < 5) {
+      readySent = false;
+      window.setTimeout(() => {
+        if (readySent || disposed || sdk !== current) {
+          return;
+        }
+        readySent = true;
+        void sendReady(current, attempt + 1);
+      }, 400 * (attempt + 1));
+    } else {
+      // 放弃重试后仍允许后续 markFirstRender/showFatalError 再触发一次
+      readySent = false;
+    }
+  }
 }

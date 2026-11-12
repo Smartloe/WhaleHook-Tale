@@ -1,5 +1,11 @@
-/** 可钩取物类型：小鱼 / 大鱼 / 宝箱 / 旧靴子 */
-export type CatchableType = 'fish_small' | 'fish_big' | 'treasure' | 'boot';
+/** 可钩取物类型：小鱼 / 大鱼 / 宝箱 / 珍珠 / 黄金鱼 / 旧靴子 */
+export type CatchableType =
+  | 'fish_small'
+  | 'fish_big'
+  | 'treasure'
+  | 'pearl'
+  | 'golden_fish'
+  | 'boot';
 
 /** 稀有度，仅用于表现与后续掉落表扩展 */
 export type Rarity = 'common' | 'rare' | 'junk';
@@ -23,6 +29,8 @@ export interface CatchableData {
   x: number;
   y: number;
   collected: boolean;
+  /** 钓上来后增加的剩余秒数（黄金鱼） */
+  timeBonus?: number;
 }
 
 /** 鱼钩可吸附对象的最小契约 */
@@ -73,12 +81,19 @@ export interface CatchableSpec {
   weight: number;
   rarity: Rarity;
   radius: number;
-  /** 占位圆形填充色，替换精灵图后可删除 */
+  /** 占位/主题色，用于光晕与 UI 强调 */
   color: number;
-  /** 占位 emoji，替换精灵图后可删除 */
-  emoji: string;
   /** 本关生成数量 */
   count: number;
+  /** 钓上来后增加的剩余秒数（黄金鱼） */
+  timeBonus?: number;
+}
+
+/** 关卡水体配色，让每一关有不同氛围 */
+export interface LevelPalette {
+  water: number;
+  surface: number;
+  seabed: number;
 }
 
 /** 关卡配置（不含舞台尺寸；水域范围由 StageLayout 提供） */
@@ -88,6 +103,7 @@ export interface LevelConfigData {
   tagline: string;
   timeLimitMs: number;
   targetScore: number;
+  palette: LevelPalette;
   catches: CatchableSpec[];
 }
 
@@ -99,4 +115,12 @@ export interface GameResultData {
   score: number;
   targetScore: number;
   timeLeftMs: number;
+  /** 历史最高分（含本局） */
+  best: number;
+  /** 本局是否刷新纪录 */
+  isNewBest: boolean;
+  /** 成功后要进入的下一关；null 表示已是最后一关 */
+  nextLevelId: number | null;
+  /** 总关卡数 */
+  levelCount: number;
 }

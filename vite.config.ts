@@ -51,10 +51,21 @@ function guardFrozenGlobals(): Plugin {
     enforce: 'post',
     renderChunk(code) {
       let next = code;
+      let matched = 0;
       for (const [pattern, value] of replacements) {
+        const before = next;
         next = next.replace(pattern, value);
+        if (next !== before) {
+          matched += 1;
+        }
       }
-      return next === code ? null : { code: next, map: null };
+      if (matched !== replacements.length) {
+        throw new Error(
+          `guardFrozenGlobals: 只匹配到 ${matched}/${replacements.length} 处 Phaser polyfill 赋值。` +
+            'Phaser 升级后压缩产物可能变化，请更新正则，否则微应用沙箱会在启动时抛只读属性错误。',
+        );
+      }
+      return { code: next, map: null };
     },
   };
 }

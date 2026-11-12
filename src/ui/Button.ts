@@ -7,6 +7,11 @@ interface ButtonOptions {
   fontSize?: number;
 }
 
+/** 带运行时改文案能力的按钮（存档异步加载后需要更新“继续第 N 关”） */
+export interface GameButton extends Phaser.GameObjects.Container {
+  setLabel(label: string): void;
+}
+
 /**
  * 占位风格按钮：圆角矩形 + 文本，鼠标悬停/按下有反馈。
  * 菜单与结算界面共用；后续换 UI 素材时只改这里。
@@ -18,7 +23,7 @@ export function createButton(
   label: string,
   onClick: () => void,
   options: ButtonOptions = {},
-): Phaser.GameObjects.Container {
+): GameButton {
   const width = options.width ?? 190;
   const height = options.height ?? 56;
   const fontSize = options.fontSize ?? 22;
@@ -41,7 +46,10 @@ export function createButton(
     })
     .setOrigin(0.5);
 
-  const container = scene.add.container(x, y, [bg, text]);
+  const container = scene.add.container(x, y, [bg, text]) as GameButton;
+  container.setLabel = (next: string) => {
+    text.setText(next);
+  };
   container.setSize(width, height);
   container.setInteractive(
     new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),

@@ -27,7 +27,7 @@ const LANDSCAPE: StageLayout = {
   width: 960,
   height: 640,
   waterTop: 185,
-  whale: { x: 480, y: 112 },
+  whale: { x: 480, y: 140 },
   boat: { centerX: 480, deckY: 140, width: 176, height: 56 },
   rodTip: { x: 480, y: 178 },
   spawnArea: { minX: 90, minY: 250, maxX: 870, maxY: 600 },
@@ -42,7 +42,7 @@ const PORTRAIT: StageLayout = {
   width: 640,
   height: 960,
   waterTop: 230,
-  whale: { x: 320, y: 185 },
+  whale: { x: 320, y: 215 },
   boat: { centerX: 320, deckY: 215, width: 176, height: 56 },
   rodTip: { x: 320, y: 278 },
   spawnArea: { minX: 70, minY: 340, maxX: 570, maxY: 880 },
@@ -55,6 +55,22 @@ const PORTRAIT: StageLayout = {
 /** 竖屏判定：宽高比小于 0.95 时使用竖屏布局 */
 export function resolveStage(viewportWidth: number, viewportHeight: number): StageLayout {
   return viewportWidth / Math.max(1, viewportHeight) < 0.95 ? PORTRAIT : LANDSCAPE;
+}
+
+/**
+ * 读取视口尺寸。平台在 app-rendered 前会把应用 frame 隐藏，此时
+ * innerWidth/innerHeight 可能为 0；这里不拿屏幕尺寸兜底，
+ * 让调用方能识别“尚不可信”并等揭示后再纠正。
+ */
+export function readViewport(): { width: number; height: number } {
+  const width = window.innerWidth || document.documentElement.clientWidth || 0;
+  const height = window.innerHeight || document.documentElement.clientHeight || 0;
+  return { width, height };
+}
+
+/** 视口不可信（隐藏/零尺寸）时先按桌面横屏启动，等 reveal/resize 再纠正 */
+export function isViewportReliable(viewport: { width: number; height: number }): boolean {
+  return viewport.width >= 160 && viewport.height >= 160;
 }
 
 /** 把舞台参数与手感参数合并成完整的鱼钩参数 */

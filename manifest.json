@@ -7,5 +7,5 @@
   "entry": "index.html",
   "script": "app.js",
   "style": "app.css",
-  "permissions": []
+  "permissions": ["audio.webAudio", "storage.read", "storage.write"]
 }
