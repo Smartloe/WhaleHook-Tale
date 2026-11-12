@@ -67,7 +67,7 @@ export class GameScene extends Phaser.Scene {
       {
         // 竖屏时角色离顶部 HUD 很近，隐藏名牌避免被面板压住
         showTag: false,
-        height: this.stage.kind === 'landscape' ? 128 : 168,
+        height: this.stage.kind === 'landscape' ? 128 : 150,
       },
     );
 
@@ -279,10 +279,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showLevelIntro(): void {
+    const introY = this.stage.waterTop + (this.stage.kind === 'portrait' ? 132 : 46);
     const title = this.add
       .text(
         this.scale.width / 2,
-        this.stage.waterTop + 46,
+        introY,
         `第 ${this.config.id} 关 · ${this.config.name}`,
         {
           fontFamily: FONT_FAMILY,
@@ -296,7 +297,7 @@ export class GameScene extends Phaser.Scene {
       .setAlpha(0);
 
     const subtitle = this.add
-      .text(this.scale.width / 2, this.stage.waterTop + 80, this.config.tagline, {
+      .text(this.scale.width / 2, introY + 34, this.config.tagline, {
         fontFamily: FONT_FAMILY,
         fontSize: '15px',
         color: '#9ad8f5',

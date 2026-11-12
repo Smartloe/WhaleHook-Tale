@@ -258,7 +258,8 @@ def panel(w: int, h: int, fill_top: int, fill_bottom: int, border: int, radius: 
     layer.paste(grad, (0, 0), mask)
     d = ImageDraw.Draw(layer)
     d.rounded_rectangle((2 * SS, 2 * SS, W - 2 * SS, H - 2 * SS), radius=(radius - 2) * SS, outline=rgba(border), width=3 * SS)
-    d.rounded_rectangle((8 * SS, 6 * SS, W - 8 * SS, H // 2), radius=(radius - 4) * SS, fill=(255, 255, 255, 34))
+    # 顶部一道很淡的高光；九宫格拉伸时不会形成明显色带
+    d.rounded_rectangle((8 * SS, 6 * SS, W - 8 * SS, int(H * 0.22)), radius=(radius - 4) * SS, fill=(255, 255, 255, 14))
     return layer.resize((w, h), Image.LANCZOS)
 
 

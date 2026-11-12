@@ -80,7 +80,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.bestText = this.add
-      .text(columnX, topY + (wide ? 132 : 112), '', {
+      .text(columnX, topY + (wide ? 132 : 122), '', {
         fontFamily: FONT_FAMILY,
         fontSize: '15px',
         color: '#ffe9a8',
@@ -90,7 +90,7 @@ export class MenuScene extends Phaser.Scene {
     this.startButton = createButton(
       this,
       columnX,
-      topY + (wide ? 200 : 168),
+      topY + (wide ? 200 : 190),
       '开始钓鱼',
       () => {
         void this.startFromSave();
@@ -99,19 +99,19 @@ export class MenuScene extends Phaser.Scene {
     );
 
     this.continueLabel = this.add
-      .text(columnX, topY + (wide ? 246 : 210), '', {
+      .text(columnX, topY + (wide ? 246 : 236), '', {
         fontFamily: FONT_FAMILY,
         fontSize: '15px',
         color: '#bfe9ff',
       })
       .setOrigin(0.5);
     this.add
-      .zone(columnX, topY + (wide ? 246 : 210), 240, 34)
+      .zone(columnX, topY + (wide ? 246 : 236), 240, 34)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.startGame(1));
 
     this.add
-      .text(columnX, topY + (wide ? 288 : 244), '空格 / 点击画面 也能发射鱼钩', {
+      .text(columnX, topY + (wide ? 288 : 270), '空格 / 点击画面 也能发射鱼钩', {
         fontFamily: FONT_FAMILY,
         fontSize: '13px',
         color: '#6f93ad',
