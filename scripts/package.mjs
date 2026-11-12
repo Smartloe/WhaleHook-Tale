@@ -1,5 +1,30 @@
-import { copyFile, readFile, stat } from 'node:fs/promises';
+import { cp, copyFile, readdir, readFile, stat } from 'node:fs/promises';
+import { join, relative, sep } from 'node:path';
 import { pack } from '@discourse-mini-app/sdk/pack';
+
+/** 平台上传页面显示的 ZIP 上限 */
+const ZIP_LIMIT_BYTES = 4096 * 1024;
+/** 只打包这些素材类型；其他文件（README、LICENSE 等）不进运行包 */
+const ASSET_EXTENSIONS = new Set(['.webp', '.png', '.jpg', '.jpeg', '.json']);
+
+async function listFiles(dir) {
+  const result = [];
+  let entries = [];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return result;
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      result.push(...(await listFiles(full)));
+    } else if (entry.isFile()) {
+      result.push(full);
+    }
+  }
+  return result;
+}
 
 /**
  * 生成 linux.do 微应用运行包 app.zip。
@@ -30,6 +55,18 @@ if (manifest.id.endsWith('000000000000')) {
 
 await copyFile('src/template.html', `${WEB_DIR}/index.html`);
 await copyFile('src/strings.json', `${WEB_DIR}/strings.json`);
+
+// mini 构建不复制 public/，这里把 public/assets 拷进运行目录，并自动生成 manifest.assets
+try {
+  await cp('public/assets', `${WEB_DIR}/assets`, { recursive: true });
+} catch {
+  // 没有素材目录时跳过
+}
+const assetPaths = (await listFiles(`${WEB_DIR}/assets`))
+  .map((file) => relative(WEB_DIR, file).split(sep).join('/'))
+  .filter((path) => ASSET_EXTENSIONS.has(path.slice(path.lastIndexOf('.')).toLowerCase()))
+  .sort();
+manifest.assets = assetPaths;
 
 const html = await readFile(`${WEB_DIR}/index.html`, 'utf8');
 const forbidden = [
@@ -78,8 +115,15 @@ for (const path of manifest.assets ?? []) {
 
 const result = await pack({ manifest, files, outputDirectory: OUT_DIR });
 
+if (result.size > ZIP_LIMIT_BYTES) {
+  throw new Error(
+    `app.zip 为 ${(result.size / 1024).toFixed(0)} KiB，超过平台上传上限 ${ZIP_LIMIT_BYTES / 1024} KiB。请压缩或删减素材。`,
+  );
+}
+
 console.log('');
 console.log(`✅ 已生成 ${result.file}`);
+console.log(`   素材 ${assetPaths.length} 个，ZIP 占上限 ${((result.size / ZIP_LIMIT_BYTES) * 100).toFixed(0)}%`);
 console.log(`   ${(result.size / 1024 / 1024).toFixed(2)} MiB · sha256 ${result.zipSha256}`);
 console.log(`   应用 ID：${manifest.id}`);
 console.log(`   版本：${manifest.version}`);

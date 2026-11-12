@@ -5,6 +5,8 @@ interface ButtonOptions {
   width?: number;
   height?: number;
   fontSize?: number;
+  /** 主按钮用珊瑚色皮肤 */
+  primary?: boolean;
 }
 
 /** 带运行时改文案能力的按钮（存档异步加载后需要更新“继续第 N 关”） */
@@ -13,8 +15,8 @@ export interface GameButton extends Phaser.GameObjects.Container {
 }
 
 /**
- * 占位风格按钮：圆角矩形 + 文本，鼠标悬停/按下有反馈。
- * 菜单与结算界面共用；后续换 UI 素材时只改这里。
+ * 按钮：使用 build-art.py 生成的九宫格皮肤。
+ * 交互规则：按下与松开都发生在按钮上才算点击，避免拖拽误触。
  */
 export function createButton(
   scene: Phaser.Scene,
@@ -27,26 +29,22 @@ export function createButton(
   const width = options.width ?? 190;
   const height = options.height ?? 56;
   const fontSize = options.fontSize ?? 22;
+  const texture = options.primary ? 'ui-button-primary' : 'ui-button';
 
-  const bg = scene.add.graphics();
-  const paint = (fill: number, strokeAlpha: number) => {
-    bg.clear();
-    bg.fillStyle(fill, 1);
-    bg.fillRoundedRect(-width / 2, -height / 2, width, height, 16);
-    bg.lineStyle(2, 0x9fe3ff, strokeAlpha);
-    bg.strokeRoundedRect(-width / 2, -height / 2, width, height, 16);
-  };
-  paint(0x1b4b66, 0.8);
+  const background = scene.add.image(0, 0, texture).setDisplaySize(width, height);
 
   const text = scene.add
     .text(0, 0, label, {
       fontFamily: FONT_FAMILY,
       fontSize: `${fontSize}px`,
-      color: '#eaf7ff',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#0a2236',
+      strokeThickness: 4,
     })
     .setOrigin(0.5);
 
-  const container = scene.add.container(x, y, [bg, text]) as GameButton;
+  const container = scene.add.container(x, y, [background, text]) as GameButton;
   container.setLabel = (next: string) => {
     text.setText(next);
   };
@@ -59,12 +57,11 @@ export function createButton(
     container.input.cursor = 'pointer';
   }
 
-  // 只有「在按钮上按下、也在按钮上松开」才算点击，避免拖拽误触
   let pressed = false;
-  container.on('pointerover', () => paint(0x266b90, 1));
+  container.on('pointerover', () => background.setTint(0xd9f2ff));
   container.on('pointerout', () => {
     pressed = false;
-    paint(0x1b4b66, 0.8);
+    background.clearTint();
     container.setScale(1);
   });
   container.on('pointerdown', () => {

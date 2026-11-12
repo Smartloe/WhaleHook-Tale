@@ -4,6 +4,7 @@ import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { ResultScene } from './scenes/ResultScene';
+import { CreditsScene } from './scenes/CreditsScene';
 import {
   isViewportReliable,
   readViewport,
@@ -44,7 +45,7 @@ function buildConfig(stage: StageLayout): Phaser.Types.Core.GameConfig {
     audio: {
       noAudio: true,
     },
-    scene: [BootScene, MenuScene, GameScene, ResultScene],
+    scene: [BootScene, MenuScene, GameScene, ResultScene, CreditsScene],
   };
 }
 

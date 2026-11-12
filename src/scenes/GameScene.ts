@@ -57,15 +57,18 @@ export class GameScene extends Phaser.Scene {
     this.catches = [];
 
     this.cameras.main.setBackgroundColor('#08121d');
-    this.drawBackground();
+    this.drawBackdrop();
 
     this.whale = new WhaleGirl(
       this,
       this.stage.whale.x,
       this.stage.whale.y,
       this.stage.rodTip,
-      // 竖屏时角色离顶部 HUD 很近，隐藏名牌避免被面板压住
-      { showTag: this.stage.kind === 'landscape' },
+      {
+        // 竖屏时角色离顶部 HUD 很近，隐藏名牌避免被面板压住
+        showTag: false,
+        height: this.stage.kind === 'landscape' ? 128 : 168,
+      },
     );
 
     const specByType = new Map<CatchableType, CatchableSpec>();
@@ -200,7 +203,30 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.whale.playPull();
+    if (gained > 0) {
+      this.flyCoins(target.x, target.y, Math.min(6, 2 + Math.round(gained / 40)));
+    }
     target.playCollected(this);
+  }
+
+  /** 金币飞向 HUD 的反馈 */
+  private flyCoins(x: number, y: number, count: number): void {
+    for (let index = 0; index < count; index += 1) {
+      const coin = this.add.circle(x, y, 4, 0xffd166, 1).setDepth(16);
+      const targetX = 60 + Math.random() * 40;
+      const targetY = 56;
+      this.tweens.add({
+        targets: coin,
+        x: targetX,
+        y: targetY,
+        scale: { from: 1.2, to: 0.4 },
+        alpha: { from: 1, to: 0.2 },
+        duration: 520 + index * 60,
+        delay: index * 40,
+        ease: 'Cubic.easeIn',
+        onComplete: () => coin.destroy(),
+      });
+    }
   }
 
   private showFloatingValue(x: number, y: number, value: number, name: string): void {
@@ -328,105 +354,57 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** 背景：夜空、海面、海底、小船、水草与漂浮气泡（坐标随舞台自适应，配色随关卡变化） */
-  private drawBackground(): void {
-    const { width, height, waterTop, boat, seabedHeight, moon } = this.stage;
-    const { palette } = this.config;
-    const g = this.add.graphics().setDepth(0);
+  /** 背景：预生成的关卡背景图 + 小船精灵 + 漂浮气泡 */
+  private drawBackdrop(): void {
+    const { width, height, boat, waterTop } = this.stage;
+    const kind = this.stage.kind === 'portrait' ? 'portrait' : 'landscape';
+    const key = `bg-${this.config.id}-${kind}`;
 
-    // 夜空
-    g.fillStyle(0x0a1826, 1);
-    g.fillRect(0, 0, width, waterTop);
-    g.fillStyle(0x122c44, 1);
-    g.fillRect(0, waterTop * 0.52, width, waterTop * 0.48);
-
-    // 月亮
-    g.fillStyle(0xf2f6d9, 0.9);
-    g.fillCircle(moon.x, moon.y, moon.radius);
-    g.fillStyle(0x0a1826, 1);
-    g.fillCircle(moon.x + moon.radius * 0.46, moon.y - moon.radius * 0.3, moon.radius * 0.85);
-
-    // 星星
-    const starColumns = [0.12, 0.23, 0.34, 0.44, 0.62, 0.73, 0.94];
-    const starRows = [0.22, 0.39, 0.19, 0.35, 0.28, 0.47, 0.58];
-    g.fillStyle(0xffffff, 0.7);
-    starColumns.forEach((column, index) => {
-      g.fillCircle(width * column, waterTop * starRows[index], 2);
-    });
-
-    // 海水（按关卡配色）
-    g.fillStyle(palette.water, 1);
-    g.fillRect(0, waterTop, width, height - waterTop);
-    g.fillStyle(palette.surface, 1);
-    g.fillRect(0, waterTop, width, 52);
-    g.lineStyle(3, 0x9fe3ff, 0.45);
-    g.lineBetween(0, waterTop, width, waterTop);
-    g.lineStyle(1, 0x9fe3ff, 0.1);
-    for (let y = waterTop + 84; y < height; y += 92) {
-      g.lineBetween(0, y, width, y);
+    if (this.textures.exists(key)) {
+      this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(width, height).setDepth(0);
+    } else {
+      // 素材缺失时的兜底底色
+      this.add.rectangle(0, 0, width, height, this.config.palette.water).setOrigin(0, 0).setDepth(0);
     }
 
-    // 水下光斑
-    g.fillStyle(0x9fe3ff, 0.05);
-    for (let index = 0; index < 5; index += 1) {
-      g.fillEllipse(width * (0.16 + index * 0.18), waterTop + 120 + index * 40, 90, 26);
+    // 小船：顶边对齐甲板高度
+    if (this.textures.exists('boat')) {
+      const boatImage = this.add.image(boat.centerX, boat.deckY, 'boat').setOrigin(0.5, 0).setDepth(3);
+      boatImage.setScale(boat.width / boatImage.width);
     }
 
-    // 海底与水草
-    g.fillStyle(palette.seabed, 1);
-    g.fillRect(0, height - seabedHeight, width, seabedHeight);
-    g.lineStyle(6, 0x1c6b58, 0.85);
-    const weedColumns = [0.09, 0.16, 0.82, 0.91];
-    const weedHeights = [70, 42, 58, 92];
-    weedColumns.forEach((column, index) => {
-      const weedX = width * column;
-      const floor = height - seabedHeight + 2;
-      g.beginPath();
-      g.moveTo(weedX, floor);
-      g.lineTo(weedX - 6, floor - weedHeights[index]);
-      g.strokePath();
+    // 水面波纹
+    const wave = this.add.graphics().setDepth(1);
+    wave.lineStyle(2, 0xd6f4ff, 0.35);
+    for (let x = 0; x < width; x += 64) {
+      wave.beginPath();
+      wave.arc(x, waterTop, 32, Math.PI, Math.PI * 2, true);
+      wave.strokePath();
+    }
+    this.tweens.add({
+      targets: wave,
+      x: { from: 0, to: 16 },
+      duration: 2600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
     });
 
     // 漂浮气泡
     const bubbleColumns = [0.12, 0.28, 0.45, 0.66, 0.8, 0.92];
     bubbleColumns.forEach((column, index) => {
       const bubble = this.add
-        .circle(width * column, height - 80 - index * 46, 3 + (index % 3), 0x9fe3ff, 0.22)
-        .setDepth(1);
+        .circle(width * column, height - 80 - index * 46, 3 + (index % 3), 0xd6f4ff, 0.28)
+        .setDepth(2);
       this.tweens.add({
         targets: bubble,
         y: bubble.y - 90,
-        alpha: { from: 0.22, to: 0 },
+        alpha: { from: 0.28, to: 0 },
         duration: 4200 + index * 700,
         repeat: -1,
         delay: index * 600,
         ease: 'Sine.easeInOut',
       });
     });
-
-    // 小船（鲸鱼娘站立处）
-    const cx = boat.centerX;
-    const deck = boat.deckY;
-    const half = boat.width / 2;
-    g.fillStyle(0x6b4226, 1);
-    g.beginPath();
-    g.moveTo(cx - half, deck + 8);
-    g.lineTo(cx + half, deck + 8);
-    g.lineTo(cx + half - 22, deck + boat.height);
-    g.lineTo(cx - half + 22, deck + boat.height);
-    g.closePath();
-    g.fillPath();
-    g.fillStyle(0x8a5a36, 1);
-    g.fillRect(cx - half, deck, boat.width, 10);
-    g.lineStyle(3, 0x3f2a1c, 0.8);
-    g.lineBetween(cx - half, deck, cx - half, deck + 8);
-    g.lineBetween(cx + half, deck, cx + half, deck + 8);
-
-    // 甲板上的小桶
-    const barrelX = cx + boat.width * 0.33;
-    g.fillStyle(0x9c6b3f, 1);
-    g.fillRect(barrelX, deck - 26, 22, 26);
-    g.fillStyle(0xc98c55, 1);
-    g.fillRect(barrelX - 3, deck - 31, 28, 7);
   }
 }

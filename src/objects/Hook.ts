@@ -16,6 +16,7 @@ export class Hook<T extends Hookable> {
   private readonly tuning: HookTuning;
   private readonly rope: Phaser.GameObjects.Graphics;
   private readonly head: Phaser.GameObjects.Container;
+  private hookArt!: Phaser.GameObjects.Image;
 
   private _state: HookState = 'IDLE_SWING';
   private phase = 0;
@@ -34,13 +35,10 @@ export class Hook<T extends Hookable> {
     this.rope = scene.add.graphics().setDepth(5);
     this.head = scene.add.container(tuning.pivot.x, tuning.pivot.y).setDepth(6);
 
-    const hookArt = scene.add.graphics();
-    hookArt.lineStyle(4, 0xe8f4ff, 1);
-    hookArt.lineBetween(0, -10, 0, 6);
-    hookArt.strokeCircle(4, 8, 5);
-    hookArt.fillStyle(0x9fe3ff, 1);
-    hookArt.fillCircle(0, -12, 3);
+    // 钩头精灵：锚点在弯钩处，随摆角旋转，浮漂朝上
+    const hookArt = scene.add.image(0, 0, 'hook').setOrigin(0.5, 0.86);
     this.head.add(hookArt);
+    this.hookArt = hookArt;
 
     this.syncTransform();
     this.drawRope();
@@ -161,6 +159,10 @@ export class Hook<T extends Hookable> {
   private syncTransform(): void {
     const head = this.computeHead();
     this.head.setPosition(head.x, head.y);
+    // 钩头朝向与鱼线一致：角度为 0 时浮漂朝上
+    if (this.hookArt) {
+      this.hookArt.setRotation(-this.angleRad * 0.35);
+    }
     if (this.attached) {
       this.attached.x = head.x;
       this.attached.y = head.y + this.attached.radius + 10;
@@ -169,8 +171,22 @@ export class Hook<T extends Hookable> {
 
   private drawRope(): void {
     const { pivot } = this.tuning;
+    const head = { x: this.head.x, y: this.head.y };
     this.rope.clear();
-    this.rope.lineStyle(3, 0xdff0ff, 0.75);
-    this.rope.lineBetween(pivot.x, pivot.y, this.head.x, this.head.y);
+    // 鱼线带一点点下垂，比直线更像真的
+    const midX = (pivot.x + head.x) / 2;
+    const midY = (pivot.y + head.y) / 2 + Math.min(28, Math.hypot(head.x - pivot.x, head.y - pivot.y) * 0.06);
+    this.rope.lineStyle(4, 0x05121f, 0.25);
+    this.rope.beginPath();
+    this.rope.moveTo(pivot.x, pivot.y + 2);
+    this.rope.lineTo(midX, midY + 2);
+    this.rope.lineTo(head.x, head.y + 2);
+    this.rope.strokePath();
+    this.rope.lineStyle(2.5, 0xe8f5ff, 0.85);
+    this.rope.beginPath();
+    this.rope.moveTo(pivot.x, pivot.y);
+    this.rope.lineTo(midX, midY);
+    this.rope.lineTo(head.x, head.y);
+    this.rope.strokePath();
   }
 }

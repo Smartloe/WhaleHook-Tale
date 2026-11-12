@@ -91,6 +91,18 @@ export function getHostSDK(): MiniAppSDK | null {
   return sdk;
 }
 
+/** 等待宿主通道就绪；普通网页里立即返回 */
+export async function whenHostReady(): Promise<void> {
+  if (!sdk) {
+    return;
+  }
+  try {
+    await sdk.ready;
+  } catch (error) {
+    console.warn('[whalehook] SDK 通道未就绪', error);
+  }
+}
+
 function notifyReady(): void {
   if (readySent || disposed || !sdk) {
     return;

@@ -25,21 +25,22 @@ export class Hud {
     const height = scene.scale.height;
     this.progressWidth = 300;
 
-    const panel = scene.add.graphics().setDepth(19);
-    panel.fillStyle(0x05121f, 0.66);
-    panel.fillRoundedRect(16, 14, 344, 78, 18);
-    panel.lineStyle(2, 0x3f86b5, 0.75);
-    panel.strokeRoundedRect(16, 14, 344, 78, 18);
-    panel.fillStyle(0x05121f, 0.66);
-    panel.fillRoundedRect(width - 176, 14, 160, 78, 18);
-    panel.lineStyle(2, 0x3f86b5, 0.75);
-    panel.strokeRoundedRect(width - 176, 14, 160, 78, 18);
+    scene.add
+      .image(16, 14, 'ui-panel')
+      .setOrigin(0, 0)
+      .setDisplaySize(344, 78)
+      .setDepth(19);
+    scene.add
+      .image(width - 176, 14, 'ui-panel')
+      .setOrigin(0, 0)
+      .setDisplaySize(160, 78)
+      .setDepth(19);
 
     scene.add
       .text(34, 24, `第 ${level.id} 关 · ${level.name}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '14px',
-        color: '#8fd4ff',
+        color: '#bfe9ff',
       })
       .setDepth(20);
 

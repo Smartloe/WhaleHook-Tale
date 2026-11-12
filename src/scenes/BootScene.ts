@@ -1,8 +1,46 @@
 import Phaser from 'phaser';
+import { FONT_FAMILY } from '../systems/LevelConfig';
+import { loadAssetBytes } from '../platform/assets';
+import { showFatalError } from '../platform/shell';
+
+/** 全部图片资源：键名 → 包内路径（同时用于 Web 与微应用） */
+export const ASSETS: ReadonlyArray<readonly [string, string]> = [
+  ['whale-full', 'assets/whale/whale-full.webp'],
+  ['whale-small', 'assets/whale/whale-small.webp'],
+  ['whale-face', 'assets/whale/whale-face.webp'],
+  ['fish-small', 'assets/items/fish-small.webp'],
+  ['fish-big', 'assets/items/fish-big.webp'],
+  ['fish-golden', 'assets/items/fish-golden.webp'],
+  ['treasure', 'assets/items/treasure.webp'],
+  ['pearl', 'assets/items/pearl.webp'],
+  ['boot', 'assets/items/boot.webp'],
+  ['hook', 'assets/items/hook.webp'],
+  ['boat', 'assets/scene/boat.webp'],
+  ['ui-button', 'assets/ui/button.webp'],
+  ['ui-button-primary', 'assets/ui/button-primary.webp'],
+  ['ui-panel', 'assets/ui/panel.webp'],
+  ['bg-1-landscape', 'assets/scene/bg-1-landscape.webp'],
+  ['bg-1-portrait', 'assets/scene/bg-1-portrait.webp'],
+  ['bg-2-landscape', 'assets/scene/bg-2-landscape.webp'],
+  ['bg-2-portrait', 'assets/scene/bg-2-portrait.webp'],
+  ['bg-3-landscape', 'assets/scene/bg-3-landscape.webp'],
+  ['bg-3-portrait', 'assets/scene/bg-3-portrait.webp'],
+];
+
+function mimeOf(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  return 'application/octet-stream';
+}
 
 /**
- * 启动场景：目前没有外部资源需要加载，只负责设置底色并进入菜单。
- * 后续接入正式美术/音效时，把 preload() 与加载进度条放这里。
+ * 启动场景：读取包内素材字节 → `createImageBitmap` 解码 → 直接注册纹理。
+ *
+ * 不走 Phaser Loader 的图片请求路径：微应用沙箱的 CSP 只允许 blob:，
+ * 且 sandbox 帧里对 blob: 的 <img> 加载并不可靠。`createImageBitmap(blob)`
+ * 不经过 img-src 请求，因此在沙箱与普通网页里行为一致。
  */
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,6 +49,82 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor('#08121d');
-    this.scene.start('Menu');
+    const width = this.scale.width;
+    const height = this.scale.height;
+
+    const title = this.add
+      .text(width / 2, height * 0.44, '鲸钩物语', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '40px',
+        color: '#eaf7ff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
+    const progress = this.add.graphics();
+    const barWidth = Math.min(280, width * 0.6);
+    const barX = (width - barWidth) / 2;
+    const barY = height * 0.54;
+
+    const drawBar = (ratio: number) => {
+      progress.clear();
+      progress.fillStyle(0x10354d, 1);
+      progress.fillRoundedRect(barX, barY, barWidth, 10, 5);
+      progress.fillStyle(0xffd166, 1);
+      progress.fillRoundedRect(barX, barY, Math.max(8, barWidth * ratio), 10, 5);
+    };
+    drawBar(0);
+
+    const hint = this.add
+      .text(width / 2, barY + 30, '正在准备鱼竿…', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '14px',
+        color: '#7fb3d1',
+      })
+      .setOrigin(0.5);
+
+    void (async () => {
+      const failed: string[] = [];
+      for (let index = 0; index < ASSETS.length; index += 1) {
+        const [key, path] = ASSETS[index];
+        if (this.textures.exists(key)) {
+          drawBar((index + 1) / ASSETS.length);
+          continue;
+        }
+        try {
+          const buffer = await loadAssetBytes(path);
+          const blob = new Blob([buffer], { type: mimeOf(path) });
+          const bitmap = await createImageBitmap(blob);
+          // Phaser 3.60+ 的 WebGL 纹理解码支持 ImageBitmap，类型声明仍是 HTMLImageElement
+          this.textures.addImage(key, bitmap as unknown as HTMLImageElement);
+        } catch (error) {
+          failed.push(key);
+          console.warn('[whalehook] 素材解码失败', key, error);
+        }
+        drawBar((index + 1) / ASSETS.length);
+      }
+
+      if (failed.length) {
+        (window as unknown as { __assetError?: string }).__assetError =
+          `failed(${failed.length}): ${failed.join(',')}`;
+      }
+
+      drawBar(1);
+      title.destroy();
+      hint.destroy();
+      progress.destroy();
+      this.scene.start('Menu');
+    })();
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (!this.scene.isActive()) {
+        return;
+      }
+      try {
+        this.scene.start('Menu');
+      } catch (error) {
+        showFatalError(error);
+      }
+    });
   }
 }

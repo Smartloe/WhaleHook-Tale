@@ -27,7 +27,8 @@
 - [x] 结算界面：成功/失败、得分、再来一次、返回标题
 - [x] 横屏（960×640）与竖屏（640×960）两套布局，按窗口比例自动选择
 - [x] 微应用运行包：单个 IIFE `app.js` + `app.css` + 片段式 `index.html` + `strings.json` + `manifest.json`
-- [x] 微应用首帧后调用 `lifecycle.ready()`，不申请任何权限
+- [x] 微应用启动时先 `await sdk.ready` 再调用 `lifecycle.ready()`（带重试）
+- [x] 权限：`audio.webAudio`（合成音效）+ `storage.read/write`（个人存档）
 
 ## 技术栈
 
@@ -92,7 +93,7 @@ MINI_APP_ID=<应用ID> MINI_APP_VERSION=0.1.0 npm run build:mini
 | 平台要求 | 本项目状态 |
 | --- | --- |
 | ZIP 由 SDK `pack` 生成，ID/版本/权限/资源一致，无多余文件或秘密 | ✅ `scripts/package.mjs` |
-| 首屏调用 `lifecycle.ready()` | ✅ `MenuScene` 首帧后调用（`src/platform/shell.ts`） |
+| 调用 `lifecycle.ready()` | ✅ `boot()` 中 `new Phaser.Game()` 后通过 `setTimeout` 发送（`src/platform/shell.ts`） |
 | 手机、键盘、深浅主题、存储恢复、离开再打开可用 | ✅ 竖屏布局 / 空格键 / 固定深色画面 / 无进度需恢复 / `pagehide` 销毁 |
 | 只使用公开 SDK，不访问父 DOM、论坛 Cookie、不绕过网络限制 | ✅ 仅 `getSDK()` + `lifecycle.ready()` |
 | 剪贴板、全屏、媒体由明确操作触发；不伪装登录 | ✅ 未使用这些能力 |
@@ -100,8 +101,8 @@ MINI_APP_ID=<应用ID> MINI_APP_VERSION=0.1.0 npm run build:mini
 | CDN 素材清单与 SHA-256 | ✅ 无远程素材 |
 | sandbox 中检查本次版本与同一份 ZIP | 见流程第 5 步 |
 
-权限：`manifest.json` 中 `permissions: []`。游戏不需要用户资料、存储或网络；如果后续加入
-最高分存档，再申请 `storage.read` / `storage.write`。
+权限：`manifest.json` 申请 `audio.webAudio`（WebAudio 合成音效）与 `storage.read` / `storage.write`
+（最高分、解锁关卡、静音偏好）。不申请用户资料、网络、剪贴板与设备权限。
 
 已知限制：舞台尺寸在启动时按窗口比例选定，**旋转屏幕后需要重新进入应用**才能切换横竖屏布局。
 
@@ -118,7 +119,8 @@ MINI_APP_ID=<应用ID> MINI_APP_VERSION=0.1.0 npm run build:mini
      `Cannot assign to read only property`，构建时把这些赋值改成纯读取表达式
      （`vite.config.ts` 的 `guardFrozenGlobals`）。
   3. **默认拒绝 AudioContext**：Phaser 启动会创建音频上下文并抛
-     `Web Audio permission denied`；本作无声音，直接 `audio.noAudio: true`。
+     `Web Audio permission denied`；Phaser 音频系统设为 `audio.noAudio: true`，
+     音效改由 `src/platform/sfx.ts` 在用户操作后自行合成（未获批时静默降级）。
   4. **frame 在 ready 前是 hidden/inert**：`requestAnimationFrame` 不回调，
      所以 `lifecycle.ready()` 必须在 `new Phaser.Game()` 之后立刻用 `setTimeout` 送出
      （`src/platform/shell.ts`），平台收到 `app-rendered` 才会显示游戏。
@@ -147,7 +149,8 @@ src/
     shell.ts              # 微应用外壳适配：SDK 连接、首帧 ready、错误展示、降级为普通网页
   scenes/
     BootScene.ts          # 预留资源加载入口，目前直接进菜单
-    MenuScene.ts          # 标题、开始、同人声明
+    MenuScene.ts          # 标题、开始、同人声明、致谢入口
+    CreditsScene.ts       # 制作与素材致谢（署名要求）
     GameScene.ts          # 主玩法循环
     ResultScene.ts        # 结算与重开
   strings.json            # 外壳文案（zh_CN / zh_TW / en）
@@ -175,22 +178,22 @@ vendor/                   # linux.do 官方 SDK 原始副本（未修改，见�
 舞台尺寸、竿尖位置、水域边界在 `src/systems/StageLayout.ts`：
 横屏 960×640，竖屏 640×960；布局选择规则是窗口宽高比 < 0.95 用竖屏。
 
-## 素材来源与许可（尚未接入）
+## 素材来源与许可
 
-MVP 阶段全部使用代码占位图形。要接入正式美术时，社区整理的候选来源如下（**接入前逐个核对作品页标注的许可**，以下仅为线索，不代表已获授权）：
+完整说明见 [`public/assets/LICENSE-ASSETS.md`](public/assets/LICENSE-ASSETS.md)，游戏内「制作与素材致谢」页也会展示。
 
-- `TreapGoGo/deepseek-whale-girl`：角色参考图、生成提示词、社区二创与 ComfyUI 工作流（`treapgogo.github.io/deepseek-whale-girl`）。
-- `phoiex/AAAAGENT`：鲸鱼娘设计稿、透明 PNG、512×512 头像与分层 PSD，适合做动画拆分或界面头像。
-- `xxnb0/deepseek-chan-fanpack`：带表情差的贴纸素材，可用作游戏内反馈表情。
-- 「蓝色大肥鱼」系列（`lmy414.github.io`）与档案馆 `fisharchive.cc`：二创图与表情包，注意原图转载/使用范围以作品页为准。
-- Pixiv / Bilibili / BOOTH：搜索 `DeepSeek娘`、`鲸鱼娘`；形象原作者为「上善无形」，女仆装与 DeepSeek 元素版本出自「ZipZipPipe」。
+- **角色立绘**：`phoiex/AAAAGENT` 的 `assets/original-design/whale-transparent.png`
+  （SHA-256 与上游清单一致），本项目做了**裁切、缩放、调色与重新排版**。
+  角色形象署名 **上善无形（OC「溟月」）、ZipZipPipe、QYQCAMIAO**，
+  许可 **CC BY-NC-SA 4.0**（署名 · 非商业 · 相同方式共享）。
+- **其他美术**（鱼、宝箱、夜明珠、靴子、钩子、小船、UI 皮肤、关卡背景）：
+  本项目原创，由 `tools/build-art.py` 程序化绘制，随项目按 CC BY-NC-SA 4.0 共享。
+  重新生成：`python3 -I tools/build-art.py`。
+- **未使用**：`TreapGoGo/deepseek-whale-girl` 的角色设定图（仓库 MIT 仅覆盖代码，设定图未声明可再分发许可）；
+  `xxnb0/deepseek-chan-fanpack` 的贴纸（无统一许可）。二者仅作画风参考。
+- **代码**：MIT，不覆盖角色形象与第三方素材。
 
-许可义务（多数社区素材为 **CC BY-NC-SA 4.0**）：
-
-1. **署名**原作者（通常是「上善无形」和/或「ZipZipPipe」），并在 README 与游戏内（标题页或制作人员页）列出所用素材及作者。
-2. **禁止商业用途**——本项目本身免费非商业，符合这一条；但仍不得售卖、投放广告或设置付费解锁。
-3. **相同协议共享**：对素材的二次修改需要以相同协议发布。
-4. 下载原图不等于获得任意转载/商用授权；如作品页标注与上述不同，以作品页为准。
+使用要求：非商业、保留署名、修改后以相同协议共享；不使用 DeepSeek 官方 Logo。
 
 ## 部署到 GitHub Pages（网页版）
 
