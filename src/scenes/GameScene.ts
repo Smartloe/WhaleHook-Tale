@@ -84,6 +84,7 @@ export class GameScene extends Phaser.Scene {
 
     this.hook = new Hook<Catchable>(this, this.tuning);
     this.hook.onSettle = (target) => this.onCaught(target);
+    this.hook.onMiss = () => this.breakCombo();
 
     this.hud = new Hud(this, this.config, this.timeLeftMs);
 
@@ -159,8 +160,8 @@ export class GameScene extends Phaser.Scene {
     for (const target of this.catches) {
       if (target.info.collected) continue;
       const distance = Phaser.Math.Distance.Between(
-        this.hook.headX,
-        this.hook.headY,
+        this.hook.tipX,
+        this.hook.tipY,
         target.x,
         target.y,
       );
@@ -183,6 +184,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** 空钩或钓到扣分物：立即中断连击 */
+  private breakCombo(): void {
+    if (this.combo === 0) return;
+    this.combo = 0;
+    this.hud.setCombo(0);
+  }
+
   private onCaught(target: Catchable): void {
     const info = target.info;
     let gained = info.value;
@@ -197,7 +205,7 @@ export class GameScene extends Phaser.Scene {
       }
       playSfx(info.value >= 150 ? 'treasure' : 'coin');
     } else {
-      this.combo = 0;
+      this.breakCombo();
       playSfx('junk');
       this.cameras.main.shake(120, 0.004);
     }
@@ -423,6 +431,46 @@ export class GameScene extends Phaser.Scene {
     if (this.textures.exists('boat')) {
       const boatImage = this.add.image(boat.centerX, boat.deckY, 'boat').setOrigin(0.5, 0).setDepth(3);
       boatImage.setScale(boat.width / boatImage.width);
+    }
+
+    // 前景海草：固定几丛，轻微摇摆
+    const kelpKeys = ['kelp-1', 'kelp-2', 'kelp-3'];
+    const kelpSpots: Array<[number, number]> = [
+      [0.05, 1],
+      [0.12, 0.78],
+      [0.87, 0.95],
+      [0.94, 0.8],
+      [0.2, 0.6],
+      [0.79, 0.55],
+    ];
+    kelpSpots.forEach(([fx, factor], index) => {
+      const key = kelpKeys[index % kelpKeys.length];
+      if (!this.textures.exists(key)) return;
+      const kelp = this.add
+        .image(width * fx, height - this.stage.seabedHeight + 8, key)
+        .setOrigin(0.5, 1)
+        .setDepth(8)
+        .setAlpha(0.9);
+      kelp.setScale(0.95 * factor);
+      this.tweens.add({
+        targets: kelp,
+        angle: { from: -3.2, to: 3.2 },
+        duration: 2400 + index * 260,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+
+    // 暗角，让画面更聚焦
+    const vignetteKey = this.stage.kind === 'portrait' ? 'ui-vignette-portrait' : 'ui-vignette-landscape';
+    if (this.textures.exists(vignetteKey)) {
+      this.add
+        .image(0, 0, vignetteKey)
+        .setOrigin(0, 0)
+        .setDisplaySize(width, height)
+        .setDepth(17)
+        .setAlpha(0.85);
     }
 
     // 水面波纹

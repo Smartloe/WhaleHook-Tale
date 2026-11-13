@@ -27,6 +27,10 @@ export class Hook<T extends Hookable> {
   /** 吸附中的目标，回收到位后置空并回调 onSettle */
   attached: T | null = null;
   onSettle?: (target: T) => void;
+  /** 空钩收回（没钩到东西）：用于打断连击 */
+  onMiss?: () => void;
+  /** 钩尖相对连接环的下垂距离（像素） */
+  private tipDistance = 0;
 
   constructor(scene: Phaser.Scene, tuning: HookTuning) {
     this.tuning = tuning;
@@ -35,10 +39,11 @@ export class Hook<T extends Hookable> {
     this.rope = scene.add.graphics().setDepth(5);
     this.head = scene.add.container(tuning.pivot.x, tuning.pivot.y).setDepth(6);
 
-    // 钩头精灵：锚点在弯钩处，随摆角旋转，浮漂朝上
-    const hookArt = scene.add.image(0, 0, 'hook').setOrigin(0.5, 0.86);
+    // 钩头精灵：原点在连接环，鱼线从这里接上，钩身自然下垂
+    const hookArt = scene.add.image(0, 0, 'hook').setOrigin(0.5, 0.115);
     this.head.add(hookArt);
     this.hookArt = hookArt;
+    this.tipDistance = hookArt.displayHeight * 0.78;
 
     this.syncTransform();
     this.drawRope();
@@ -54,6 +59,15 @@ export class Hook<T extends Hookable> {
 
   get headY(): number {
     return this.head.y;
+  }
+
+  /** 钩尖（真正参与碰撞的位置） */
+  get tipX(): number {
+    return this.head.x + Math.sin(this.angleRad) * this.tipDistance;
+  }
+
+  get tipY(): number {
+    return this.head.y + Math.cos(this.angleRad) * this.tipDistance;
   }
 
   /** 是否允许发射（仅摆动待机时） */
@@ -140,6 +154,8 @@ export class Hook<T extends Hookable> {
     this.settleRemainingMs = this.tuning.settleMs;
     if (target) {
       this.onSettle?.(target);
+    } else {
+      this.onMiss?.();
     }
   }
 
@@ -165,13 +181,13 @@ export class Hook<T extends Hookable> {
   private syncTransform(): void {
     const head = this.computeHead();
     this.head.setPosition(head.x, head.y);
-    // 钩头朝向与鱼线一致：角度为 0 时浮漂朝上
+    // 钩身沿鱼线方向摆动，连接环始终贴着线尾
     if (this.hookArt) {
-      this.hookArt.setRotation(-this.angleRad * 0.35);
+      this.hookArt.setRotation(this.angleRad);
     }
     if (this.attached) {
-      this.attached.x = head.x;
-      this.attached.y = head.y + this.attached.radius + 10;
+      this.attached.x = this.tipX;
+      this.attached.y = this.tipY + this.attached.radius + 6;
     }
   }
 

@@ -156,23 +156,32 @@ def treasure(size: int) -> Image.Image:
 
 
 def pearl(size: int) -> Image.Image:
-    W = H = 200 * SS
+    W = H = 220 * SS
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).ellipse((10 * SS, 10 * SS, 190 * SS, 190 * SS), fill=(180, 235, 255, 120))
+    ImageDraw.Draw(glow).ellipse((20 * SS, 16 * SS, 200 * SS, 200 * SS), fill=(180, 235, 255, 110))
     layer = Image.alpha_composite(layer, glow.filter(ImageFilter.GaussianBlur(16 * SS)))
-    # 贝壳
     d = ImageDraw.Draw(layer)
-    d.pieslice((24 * SS, 96 * SS, 176 * SS, 190 * SS), 0, 180, fill=rgba(0xffb3c7))
-    for i in range(-2, 3):
-        d.line([(100 * SS, 143 * SS), ((100 + i * 30) * SS, 186 * SS)], fill=rgba(0xff8fb1), width=4 * SS)
+
+    # 下壳
+    d.pieslice((24 * SS, 96 * SS, 196 * SS, 204 * SS), 0, 180, fill=rgba(0xffc2d3))
+    for i in range(-3, 4):
+        d.line([(110 * SS, 150 * SS), ((110 + i * 26) * SS, 194 * SS)], fill=rgba(0xf09ab3), width=4 * SS)
+    d.arc((24 * SS, 96 * SS, 196 * SS, 204 * SS), 0, 180, fill=rgba(0xd97a97), width=4 * SS)
+
     # 珍珠
-    p = gradient_ellipse((W, H), (52 * SS, 50 * SS, 148 * SS, 146 * SS), 0xffffff, 0xbfe6ff)
+    p = gradient_ellipse((W, H), (56 * SS, 44 * SS, 164 * SS, 156 * SS), 0xffffff, 0xbfe6ff)
     layer = Image.alpha_composite(layer, p)
     d = ImageDraw.Draw(layer)
-    d.ellipse((70 * SS, 66 * SS, 102 * SS, 92 * SS), fill=(255, 255, 255, 230))
-    d.arc((60 * SS, 60 * SS, 140 * SS, 140 * SS), 20, 110, fill=(255, 255, 255, 140), width=4 * SS)
-    return finish(layer, (size, size))
+    d.ellipse((76 * SS, 60 * SS, 112 * SS, 92 * SS), fill=(255, 255, 255, 235))
+    d.arc((66 * SS, 54 * SS, 154 * SS, 146 * SS), 20, 110, fill=(255, 255, 255, 150), width=4 * SS)
+
+    # 上壳（半开）
+    d.pieslice((28 * SS, 20 * SS, 192 * SS, 120 * SS), 180, 360, fill=rgba(0xffd6e2))
+    d.arc((28 * SS, 20 * SS, 192 * SS, 120 * SS), 180, 360, fill=rgba(0xd97a97), width=4 * SS)
+    for i in range(-3, 4):
+        d.line([(110 * SS, 34 * SS), ((110 + i * 24) * SS, 76 * SS)], fill=rgba(0xf0a8bd), width=3 * SS)
+    return finish(layer, (size, int(size * 1.05)))
 
 
 def boot(size: int) -> Image.Image:
@@ -210,18 +219,26 @@ def boot(size: int) -> Image.Image:
 
 
 def hook_sprite(size: int) -> Image.Image:
-    W, H = 120 * SS, 200 * SS
+    """鱼钩：顶部为连接环（鱼线从这里接上），下方为钩身与弯钩。"""
+    W, H = 120 * SS, 220 * SS
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    # 浮漂
-    d.ellipse((38 * SS, 8 * SS, 82 * SS, 52 * SS), fill=rgba(0xff6f91))
-    d.chord((38 * SS, 8 * SS, 82 * SS, 52 * SS), 0, 180, fill=(255, 255, 255, 255))
-    d.ellipse((48 * SS, 16 * SS, 60 * SS, 26 * SS), fill=(255, 255, 255, 200))
+    steel = rgba(0xdfe9f2)
+    dark = rgba(0x8fa9bd)
+    # 连接环
+    d.ellipse((44 * SS, 10 * SS, 76 * SS, 42 * SS), outline=steel, width=9 * SS)
+    d.ellipse((48 * SS, 14 * SS, 72 * SS, 38 * SS), outline=dark, width=3 * SS)
     # 钩身
-    d.line([(60 * SS, 52 * SS), (60 * SS, 140 * SS)], fill=rgba(0xdfe9f2), width=9 * SS)
-    d.arc((28 * SS, 112 * SS, 92 * SS, 186 * SS), 0, 200, fill=rgba(0xdfe9f2), width=9 * SS)
-    d.polygon([(28 * SS, 148 * SS), (18 * SS, 128 * SS), (40 * SS, 140 * SS)], fill=rgba(0xdfe9f2))
-    return finish(layer, (round(size * 0.6), size), outline=4)
+    d.line([(60 * SS, 42 * SS), (60 * SS, 140 * SS)], fill=steel, width=10 * SS)
+    d.line([(56 * SS, 46 * SS), (56 * SS, 134 * SS)], fill=(255, 255, 255, 90), width=3 * SS)
+    # 弯钩
+    d.arc((24 * SS, 104 * SS, 96 * SS, 196 * SS), 0, 200, fill=steel, width=10 * SS)
+    d.arc((30 * SS, 110 * SS, 90 * SS, 190 * SS), 0, 200, fill=dark, width=3 * SS)
+    # 钩尖
+    d.polygon([(24 * SS, 150 * SS), (12 * SS, 126 * SS), (38 * SS, 140 * SS)], fill=steel)
+    # 倒刺
+    d.polygon([(34 * SS, 168 * SS), (22 * SS, 160 * SS), (34 * SS, 154 * SS)], fill=steel)
+    return finish(layer, (round(size * 0.62), size), outline=3)
 
 
 def boat(width: int) -> Image.Image:
@@ -376,11 +393,14 @@ def panel(w: int, h: int, fill_top: int, fill_bottom: int, border: int, radius: 
 
 
 def background(width: int, height: int, sky_top: int, sky_bottom: int, water_top: int, water_bottom: int, water_line: int, seed: int) -> Image.Image:
+    """三层式海底背景：夜空 → 水体（光柱、远景礁石）→ 海底（沙地、卵石、海星、珊瑚）。"""
     import random
 
     rnd = random.Random(seed)
     img = Image.new("RGBA", (width, height))
     d = ImageDraw.Draw(img)
+
+    # 渐变（天空 + 水体，水体分三段更通透）
     for y in range(height):
         if y < water_line:
             t = y / max(1, water_line)
@@ -388,43 +408,163 @@ def background(width: int, height: int, sky_top: int, sky_bottom: int, water_top
         else:
             t = (y - water_line) / max(1, height - water_line)
             a, b = rgba(water_top), rgba(water_bottom)
+            t = t ** 0.8
         d.line([(0, y), (width, y)], fill=tuple(int(a[i] * (1 - t) + b[i] * t) for i in range(3)) + (255,))
-    # 星星
-    for _ in range(70):
-        x, y = rnd.randrange(width), rnd.randrange(int(water_line * 0.85))
+
+    # 星空
+    for _ in range(80):
+        x, y = rnd.randrange(width), rnd.randrange(int(water_line * 0.9))
         r = rnd.choice((1, 1, 1, 2))
-        d.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, rnd.randrange(120, 230)))
+        d.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, rnd.randrange(100, 230)))
+
+    # 月亮
+    mx, my, mr = int(width * 0.74), int(water_line * 0.3), max(18, width // 40)
+    d.ellipse((mx - mr, my - mr, mx + mr, my + mr), fill=(242, 246, 217, 230))
+    d.ellipse((mx - mr * 0.3, my - mr * 1.1, mx + mr * 1.7, my + mr * 0.9), fill=tuple(rgba(sky_top)[:3]) + (255,))
+
     # 光柱
     rays = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     rd = ImageDraw.Draw(rays)
-    for i in range(6):
-        x = int(width * (0.08 + i * 0.17)) + rnd.randrange(-20, 20)
-        rd.polygon([(x, water_line), (x + 34, water_line), (x + 120, height), (x - 40, height)], fill=(170, 230, 255, 22))
-    img = Image.alpha_composite(img, rays.filter(ImageFilter.GaussianBlur(10)))
+    for i in range(7):
+        x = int(width * (0.04 + i * 0.15)) + rnd.randrange(-24, 24)
+        rd.polygon([(x, water_line), (x + 40, water_line), (x + 150, height), (x - 60, height)], fill=(170, 235, 255, 26))
+    img = Image.alpha_composite(img, rays.filter(ImageFilter.GaussianBlur(14)))
+
     d = ImageDraw.Draw(img)
-    # 海面高光带
-    for x in range(0, width, 46):
-        d.arc((x, water_line - 6, x + 46, water_line + 10), 200, 340, fill=(200, 240, 255, 120), width=2)
-    # 远处礁石与珊瑚
-    base = height - 40
-    for i in range(9):
-        cx = int(width * i / 8) + rnd.randrange(-30, 30)
-        r = rnd.randrange(46, 96)
-        d.ellipse((cx - r, base - r // 2, cx + r, base + r), fill=rgba(water_bottom, 255))
-    coral = [0xff8fb1, 0xffb36b, 0xb48cff, 0x5fd3b0]
-    for i in range(11):
-        cx = rnd.randrange(20, width - 20)
-        color = rgba(rnd.choice(coral), 200)
-        h = rnd.randrange(40, 90)
-        for k in range(3):
-            ang = math.radians(-90 + (k - 1) * 28)
-            d.line([(cx, base), (cx + math.cos(ang) * h * 0.6, base + math.sin(ang) * h)], fill=color, width=7)
-        d.ellipse((cx - 6, base - h - 4, cx + 6, base - h + 8), fill=color)
-    # 海底
-    d.rectangle((0, height - 34, width, height), fill=rgba(0x0a1f2e))
-    for x in range(0, width, 18):
-        d.ellipse((x, height - 40, x + 30, height - 26), fill=rgba(0x13324a))
+    # 水面波浪高光
+    for x in range(-20, width, 44):
+        d.arc((x, water_line - 8, x + 44, water_line + 12), 200, 340, fill=(210, 245, 255, 150), width=2)
+    d.line([(0, water_line), (width, water_line)], fill=(190, 240, 255, 90), width=2)
+
+    # 远景礁石群
+    far = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(far)
+    base = int(height * 0.82)
+    for i in range(6):
+        cx = int(width * (i + 0.5) / 6) + rnd.randrange(-40, 40)
+        w = rnd.randrange(120, 240)
+        h = rnd.randrange(70, 150)
+        fd.ellipse((cx - w // 2, base - h, cx + w // 2, base + 40), fill=tuple(rgba(water_bottom)[:3]) + (200,))
+    img = Image.alpha_composite(img, far.filter(ImageFilter.GaussianBlur(6)))
+
+    d = ImageDraw.Draw(img)
+
+    # 海底沙地
+    floor = height - int(height * 0.09)
+    d.ellipse((-width * 0.2, floor - 30, width * 1.2, height + 60), fill=rgba(0x071a28))
+    d.ellipse((-width * 0.2, floor - 6, width * 1.2, height + 80), fill=rgba(0x0d2738))
+    # 沙地柔和反光（不用亮线，避免像发光电线）
+    d.ellipse((width * 0.05, floor + 6, width * 0.95, height + 30), fill=(110, 170, 190, 18))
+
+    # 卵石
+    for _ in range(18):
+        x = rnd.randrange(int(width * 0.04), int(width * 0.96))
+        y = floor + rnd.randrange(-10, int(height * 0.05))
+        r = rnd.randrange(6, 18)
+        color = rnd.choice((0x143447, 0x1b4358, 0x0f2c3e))
+        d.ellipse((x - r, y - r * 0.55, x + r, y + r * 0.55), fill=rgba(color))
+        d.arc((x - r, y - r * 0.55, x + r, y + r * 0.55), 200, 320, fill=(160, 210, 225, 40), width=2)
+
+    # 海星与贝壳
+    for _ in range(4):
+        x = rnd.randrange(int(width * 0.1), int(width * 0.9))
+        y = floor + rnd.randrange(0, int(height * 0.03))
+        color = rnd.choice((0xff8fb1, 0xffb36b, 0xc9a7ff))
+        pts = []
+        for i in range(10):
+            r = 11 if i % 2 == 0 else 4
+            ang = math.radians(-90 + i * 36)
+            pts.append((x + math.cos(ang) * r, y + math.sin(ang) * r * 0.6))
+        d.polygon(pts, fill=rgba(color))
+
+    # 珊瑚簇（比旧版更立体：主枝 + 侧枝 + 端点球）
+    coral_colors = (0xff8fb1, 0xffb36b, 0xb48cff, 0x5fd3b0)
+    for _ in range(10):
+        cx = rnd.randrange(int(width * 0.04), int(width * 0.96))
+        cy = floor + rnd.randrange(-6, 8)
+        color = rgba(rnd.choice(coral_colors), 230)
+        h = rnd.randrange(34, 74)
+        for k in range(4):
+            ang = math.radians(-90 + (k - 1.5) * 22)
+            ex = cx + math.cos(ang) * h * 0.8
+            ey = cy + math.sin(ang) * h
+            d.line([(cx, cy), (ex, ey)], fill=color, width=6, joint="curve")
+            d.ellipse((ex - 4, ey - 4, ex + 4, ey + 4), fill=color)
+        d.line([(cx, cy), (cx, cy - h * 0.4)], fill=color, width=7)
+
+    # 水中微粒
+    for _ in range(60):
+        x = rnd.randrange(width)
+        y = rnd.randrange(water_line, floor)
+        r = rnd.choice((1, 1, 2))
+        d.ellipse((x - r, y - r, x + r, y + r), fill=(200, 240, 255, rnd.randrange(30, 90)))
+
+    # 暗角
+    vignette = Image.new("L", (width, height), 0)
+    vd = ImageDraw.Draw(vignette)
+    margin = int(min(width, height) * 0.18)
+    vd.rectangle((margin, margin, width - margin, height - margin), fill=255)
+    vignette = vignette.filter(ImageFilter.GaussianBlur(margin))
+    dark = Image.new("RGBA", (width, height), (2, 8, 16, 110))
+    dark.putalpha(vignette.point(lambda v: int((255 - v) * 0.42)))
+    img = Image.alpha_composite(img, dark)
+
     return img
+
+
+def kelp(size: int, color_a: int, color_b: int, seed: int) -> Image.Image:
+    """前景海草：多片宽叶、自然弯曲、底部深顶部亮的渐变。"""
+    import random
+
+    rnd = random.Random(seed)
+    W, H = 220 * SS, 520 * SS
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    blades = 7
+    for i in range(blades):
+        base_x = W // 2 + rnd.randrange(-46, 46) * SS
+        height = int(H * rnd.uniform(0.45, 0.85))
+        width = rnd.randrange(34, 52) * SS
+        sway = rnd.uniform(-1.8, 1.8)
+        phase = rnd.uniform(0, 6.28)
+        steps = 20
+        left, right, spine = [], [], []
+        for step in range(steps + 1):
+            t = step / steps
+            y = H - t * height
+            x = base_x + math.sin(t * 2.2 + phase) * 52 * SS * sway * t + t * 10 * SS * sway
+            half = width * (0.3 + 0.7 * (1 - t)) / 2
+            left.append((x - half, y))
+            right.append((x + half, y))
+            spine.append((x, y))
+        poly = left + right[::-1]
+
+        # 叶形遮罩 + 垂直渐变
+        mask = Image.new("L", (W, H), 0)
+        ImageDraw.Draw(mask).polygon(poly, fill=255)
+        top_y = H - height
+        grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        gd = ImageDraw.Draw(grad)
+        for y in range(int(top_y), H):
+            t = (y - top_y) / max(1, H - top_y)
+            c = tuple(int(rgba(color_b)[k] * (1 - t) + rgba(color_a)[k] * t) for k in range(3)) + (232,)
+            gd.line([(0, y), (W, y)], fill=c)
+        layer = Image.alpha_composite(layer, Image.composite(grad, Image.new("RGBA", (W, H), (0, 0, 0, 0)), mask))
+        d = ImageDraw.Draw(layer)
+        d.line(left, fill=rgba(color_b, 150), width=3 * SS, joint="curve")
+        d.line(spine, fill=rgba(color_b, 100), width=2 * SS, joint="curve")
+    return layer.resize((size, int(size * H / W)), Image.LANCZOS)
+
+
+def vignette(width: int, height: int) -> Image.Image:
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    mask = Image.new("L", (width, height), 0)
+    d = ImageDraw.Draw(mask)
+    margin = int(min(width, height) * 0.2)
+    d.rectangle((margin, margin, width - margin, height - margin), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(margin))
+    dark = Image.new("RGBA", (width, height), (1, 6, 12, 255))
+    dark.putalpha(mask.point(lambda v: int((255 - v) * 0.55)))
+    return Image.alpha_composite(img, dark)
 
 
 def save(img: Image.Image, rel: str, quality: int = 88) -> None:
@@ -458,20 +598,25 @@ def jellyfish(size: int) -> Image.Image:
 
 
 def rock(size: int) -> Image.Image:
-    W = H = 220 * SS
+    W = H = 240 * SS
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    d.polygon([(28 * SS, 168 * SS), (56 * SS, 96 * SS), (104 * SS, 60 * SS),
-               (156 * SS, 88 * SS), (192 * SS, 150 * SS), (180 * SS, 176 * SS), (44 * SS, 176 * SS)],
-              fill=rgba(0x3f5a6e))
-    d.polygon([(56 * SS, 96 * SS), (104 * SS, 60 * SS), (120 * SS, 100 * SS), (80 * SS, 130 * SS)],
-              fill=rgba(0x55768c))
-    d.line([(104 * SS, 60 * SS), (120 * SS, 100 * SS)], fill=rgba(0x2c4152), width=4 * SS)
-    d.line([(120 * SS, 100 * SS), (168 * SS, 120 * SS)], fill=rgba(0x2c4152), width=4 * SS)
-    # 海草点缀
-    d.line([(70 * SS, 100 * SS), (60 * SS, 66 * SS)], fill=rgba(0x3fbf8a), width=7 * SS)
-    d.line([(70 * SS, 100 * SS), (84 * SS, 72 * SS)], fill=rgba(0x2f9e74), width=6 * SS)
-    return finish(layer, (size, size), outline=5)
+    # 主体：圆润多边形
+    pts = [(36, 168), (44, 118), (78, 84), (126, 74), (168, 92), (196, 132), (192, 172), (150, 184), (66, 184)]
+    d.polygon([(x * SS, y * SS) for x, y in pts], fill=rgba(0x4a6577))
+    # 顶部受光面
+    top = [(44, 118), (78, 84), (126, 74), (168, 92), (150, 120), (86, 132)]
+    d.polygon([(x * SS, y * SS) for x, y in top], fill=rgba(0x6c8b9e))
+    # 高光
+    d.polygon([(84 * SS, 92 * SS), (120 * SS, 80 * SS), (140 * SS, 96 * SS), (100 * SS, 110 * SS)], fill=(200, 225, 235, 55))
+    # 裂纹与苔藓
+    d.line([(126 * SS, 74 * SS), (138 * SS, 104 * SS), (168 * SS, 118 * SS)], fill=rgba(0x2f4453), width=4 * SS)
+    d.line([(86 * SS, 132 * SS), (96 * SS, 160 * SS)], fill=rgba(0x2f4453), width=3 * SS)
+    for mx, my, mr in ((74, 150, 14), (160, 150, 12), (108, 168, 10)):
+        d.ellipse(((mx - mr) * SS, (my - mr * 0.7) * SS, (mx + mr) * SS, (my + mr * 0.7) * SS), fill=rgba(0x3fbf8a, 120))
+    # 底部阴影
+    d.ellipse((40 * SS, 172 * SS, 200 * SS, 196 * SS), fill=(2, 10, 18, 90))
+    return finish(layer, (size, size), outline=3)
 
 
 def title_art(text: str = "鲸钩物语") -> Image.Image | None:
@@ -563,6 +708,11 @@ def main() -> int:
     for index, (name, st, sb, wt, wb) in enumerate(zones, start=1):
         save(background(960, 640, st, sb, wt, wb, 186, seed=index), f"scene/bg-{name}-landscape.webp", quality=80)
         save(background(640, 960, st, sb, wt, wb, 232, seed=index + 10), f"scene/bg-{name}-portrait.webp", quality=80)
+
+    for index, (ca, cb) in enumerate([(0x2f8f6f, 0x7fe3b0), (0x3f7f9f, 0x8fe0ff), (0x6f5f9f, 0xc9b0ff)], start=1):
+        save(kelp(110, ca, cb, seed=index), f"scene/kelp-{index}.webp", quality=86)
+    save(vignette(960, 640), "ui/vignette-landscape.webp", quality=80)
+    save(vignette(640, 960), "ui/vignette-portrait.webp", quality=80)
 
     total = sum(p.stat().st_size for p in OUT.rglob("*.webp"))
     print(f"总计 {total // 1024} KiB")

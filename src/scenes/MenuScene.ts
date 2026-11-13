@@ -160,6 +160,36 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0, 1)
       .setDepth(22);
 
+    // 前景海草与暗角
+    const kelpKeys = ['kelp-1', 'kelp-2', 'kelp-3'];
+    [[0.04, 1], [0.93, 0.9], [0.12, 0.6]].forEach(([fx, factor], index) => {
+      const key = kelpKeys[index % 3];
+      if (!this.textures.exists(key)) return;
+      const kelp = this.add
+        .image(width * fx, height + 6, key)
+        .setOrigin(0.5, 1)
+        .setDepth(3)
+        .setAlpha(0.85);
+      kelp.setScale((wide ? 0.9 : 0.55) * factor);
+      this.tweens.add({
+        targets: kelp,
+        angle: { from: -3, to: 3 },
+        duration: 2600 + index * 300,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+    const vignetteKey = wide ? 'ui-vignette-landscape' : 'ui-vignette-portrait';
+    if (this.textures.exists(vignetteKey)) {
+      this.add
+        .image(0, 0, vignetteKey)
+        .setOrigin(0, 0)
+        .setDisplaySize(width, height)
+        .setDepth(2)
+        .setAlpha(0.8);
+    }
+
     // 台词气泡
     const line = LINES[Math.floor(Math.random() * LINES.length)];
     const bubbleY = artY - artHeight * 0.62;
